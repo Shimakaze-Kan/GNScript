@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GNScript", "GNScript\GNScript.csproj", "{B9453A00-34F3-4083-BF9A-9DE995FF250F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B9453A00-34F3-4083-BF9A-9DE995FF250F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9453A00-34F3-4083-BF9A-9DE995FF250F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9453A00-34F3-4083-BF9A-9DE995FF250F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9453A00-34F3-4083-BF9A-9DE995FF250F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1EF43F09-864D-44F6-B289-783566038140}
+	EndGlobalSection
+EndGlobal

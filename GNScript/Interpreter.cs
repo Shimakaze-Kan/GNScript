@@ -1,0 +1,327 @@
+﻿using System.Text;
+
+using GNScript.Helpers;
+using GNScript.Models;
+
+namespace GNScript;
+public class Interpreter
+{
+    private readonly VariableCollection _variables = new();
+    private readonly Dictionary<string, FunctionNode> _functions = [];
+    private readonly Stack<CallReturnValue> _callReturnValue = [];
+    private int _scopeLevel = 0;
+
+    public void Run(AstNode node)
+    {
+        while (node != null)
+        {
+            Visit(node);
+            node = node.Next;
+        }
+    }
+
+    public ExecutionModel Visit(AstNode node)
+    {
+        if (node is NumberNode numberNode)
+        {
+            return int.Parse(numberNode.Value);
+        }
+        else if (node is StringNode stringNode)
+        {
+            return stringNode.Value;
+        }
+        else if (node is VariableNode variableNode)
+        {
+            return ExecutionModel.FromObject(_variables.GetVariable(variableNode.Name, _scopeLevel));
+        }
+        else if (node is AssignmentNode assignmentNode)
+        {
+            var value = Visit(assignmentNode.Expression);
+            _variables.SetVariable(assignmentNode.Variable, value.Value, _scopeLevel);
+            return ExecutionModel.Empty;
+        }
+        else if (node is BinaryOperationNode binaryNode)
+        {
+            var leftValue = Visit(binaryNode.Left);
+            var rightValue = Visit(binaryNode.Right);
+
+            if (leftValue.IsEmptyValue || rightValue.IsEmptyValue)
+                throw new Exception("Binary operation require value");
+
+            if (leftValue.IsInt() && rightValue.IsInt())
+            {
+                var leftValueInt = (int)leftValue;
+                var rightValueInt = (int)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        return leftValueInt + rightValueInt;
+                    case TokenType.Minus:
+                        return leftValueInt - rightValueInt;
+                    case TokenType.Multiply:
+                        return leftValueInt * rightValueInt;
+                    case TokenType.Divide:
+                        return leftValueInt / rightValueInt;
+                    case TokenType.GreaterThan:
+                        return leftValueInt > rightValueInt ? 1 : 0;
+                    case TokenType.GreaterThanOrEqual:
+                        return leftValueInt >= rightValueInt ? 1 : 0;
+                    case TokenType.LessThan:
+                        return leftValueInt < rightValueInt ? 1 : 0;
+                    case TokenType.LessThanOrEqual:
+                        return leftValueInt <= rightValueInt ? 1 : 0;
+                    case TokenType.Equal:
+                        return leftValueInt == rightValueInt ? 1 : 0;
+                    case TokenType.NotEqual:
+                        return leftValueInt != rightValueInt ? 1 : 0;
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+            else if (leftValue.IsInt() && rightValue.IsString())
+            {
+                var leftValueInt = (int)leftValue;
+                var rightValueString = (string)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        return leftValueInt + rightValueString;
+                    case TokenType.Multiply:
+                        return string.Join("", Enumerable.Repeat(rightValueString, leftValueInt));
+                    case TokenType.GreaterThan:
+                        return leftValueInt > rightValueString.Length ? 1 : 0;
+                    case TokenType.Equal:
+                        return leftValueInt == rightValueString.Length ? 1 : 0;
+                    case TokenType.NotEqual:
+                        return leftValueInt != rightValueString.Length ? 1 : 0;
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+            else if (leftValue.IsString() && rightValue.IsInt())
+            {
+                var leftValueString = (string)leftValue;
+                var rightValueInt = (int)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        return leftValueString + rightValueInt;
+                    case TokenType.Minus:
+                        return leftValueString[..^rightValueInt];
+                    case TokenType.Multiply:
+                        return string.Join("", Enumerable.Repeat(leftValueString, rightValueInt));
+                    case TokenType.Divide:
+                        return leftValueString[..(leftValueString.Length / rightValueInt)];
+                    case TokenType.LessThan:
+                        return leftValueString.Length < rightValueInt ? 1 : 0;
+                    case TokenType.LessThanOrEqual:
+                        return leftValueString.Length <= rightValueInt ? 1 : 0;
+                    case TokenType.Equal:
+                        return leftValueString.Length == rightValueInt ? 1 : 0;
+                    case TokenType.NotEqual:
+                        return leftValueString.Length != rightValueInt ? 1 : 0;
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+            else
+            {
+                var leftValueString = (string)leftValue;
+                var rightValueString = (string)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        return leftValueString + rightValueString;
+                    case TokenType.Minus:
+                        return leftValueString.TrimEnd(rightValueString);
+                    case TokenType.Divide:
+                        return leftValueString.CountOccurrences(rightValueString);
+                    case TokenType.GreaterThan:
+                        return leftValueString.CompareTo(rightValueString) == 1 ? 1 : 0;
+                    case TokenType.GreaterThanOrEqual:
+                        {
+                            var comparsionResult = leftValueString.CompareTo(rightValueString);
+                            return comparsionResult == 1 || comparsionResult == 0 ? 1 : 0;
+                        }
+                    case TokenType.LessThan:
+                        return leftValueString.CompareTo(rightValueString) == -1 ? 1 : 0;
+                    case TokenType.LessThanOrEqual:
+                        {
+                            var comparsionResult = leftValueString.CompareTo(rightValueString);
+                            return comparsionResult == -1 || comparsionResult == 0 ? 1 : 0;
+                        }
+                    case TokenType.Equal:
+                        return leftValueString.CompareTo(rightValueString) == 0 ? 1 : 0;
+                    case TokenType.NotEqual:
+                        return leftValueString.CompareTo(rightValueString) != 0 ? 1 : 0;
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+        }
+        else if (node is PrintNode printNode)
+        {
+            var value = Visit(printNode.Expression).Value;
+            Console.WriteLine(value);
+            return ExecutionModel.Empty;
+        }
+        else if (node is FunctionNode functionNode)
+        {
+            _functions[functionNode.Name] = functionNode;
+            return ExecutionModel.Empty;
+        }
+        else if (node is FunctionCallNode functionCallNode)
+        {
+            if (_functions.TryGetValue(functionCallNode.Name, out FunctionNode function))
+            {
+                var callScopeLevel = _scopeLevel;
+                _scopeLevel++;
+
+                DeclareFunctionParameters(functionCallNode, function);
+
+                var body = function.Body;
+
+                while (body != null)
+                {
+                    Visit(body);
+                    body = body.Next;
+
+                    if (_callReturnValue.Any())
+                    {
+                        _variables.ClearScope(callScopeLevel + 1);
+                        _scopeLevel = callScopeLevel;
+                        var returnValue = _callReturnValue.Pop().ReturnValue;
+                        return ExecutionModel.FromObject(returnValue);
+                    }
+                }
+
+                throw new Exception("No return statement in function");
+            }
+            else
+            {
+                throw new Exception($"Invalid function name: '{functionCallNode.Name}'");
+            }
+        }
+        else if (node is IfNode ifNode)
+        {
+            using (CreateBlockScope())
+            {
+                var conditionValue = (int)Visit(ifNode.Condition);
+                if (conditionValue != 0)
+                {
+                    var bodyNode = ifNode.ThenBranch;
+                    if (ExecuteBody(bodyNode))
+                        return ExecutionModel.Empty;
+                }
+                else if (ifNode.ElseBranch != null)
+                {
+                    var bodyNode = ifNode.ElseBranch;
+                    if (ExecuteBody(bodyNode))
+                        return ExecutionModel.Empty;
+                }
+            }
+
+            return ExecutionModel.Empty;
+        }
+        else if (node is WhileNode whileNode)
+        {
+            using (CreateBlockScope())
+            {
+                while ((int)Visit(whileNode.Condition) != 0)
+                {
+                    var bodyNode = whileNode.Body;
+                    if (ExecuteBody(bodyNode))
+                        return ExecutionModel.Empty;
+                }
+            }
+
+            return ExecutionModel.Empty;
+        }
+        else if (node is ForNode forNode)
+        {
+            using (CreateBlockScope())
+            {
+                for (Visit(forNode.Init); (int)Visit(forNode.Condition) != 0; Visit(forNode.Increment))
+                {
+                    var bodyNode = forNode.Body;
+                    if (ExecuteBody(bodyNode))
+                        return ExecutionModel.Empty;
+                }
+            }
+
+            return ExecutionModel.Empty;
+        }
+        else if (node is ReturnNode returnNode)
+        {
+            var returnValue = Visit(returnNode.Expression).Value;
+            _callReturnValue.Push(new CallReturnValue(returnValue));
+            return ExecutionModel.Empty;
+        }
+        else if (node is InputNode)
+        {
+            var input = Console.ReadLine() ?? "";
+            if (int.TryParse(input, out var value))
+            {
+                return value;
+            }
+
+            return input;
+        }
+
+        throw new Exception("AST node error");
+    }
+
+    public void Dump()
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("[Variables]");
+        var variablesDump = _variables.ToString();
+
+        if (string.IsNullOrEmpty(variablesDump))
+            sb.AppendLine("  No variables to display.\n");
+        else
+            sb.AppendLine(_variables.ToString());
+
+        sb.AppendLine("[Functions]");
+        foreach (var (name, function) in _functions)
+        {
+            sb.AppendLine($"  {name} -> {{{string.Join(", ", function.Parameters)}}}");
+        }
+
+        if (_functions.Count == 0)
+            sb.AppendLine("  No functions to display.");
+
+        Console.WriteLine(sb);
+    }
+
+    private void DeclareFunctionParameters(FunctionCallNode functionCallNode, FunctionNode function)
+    {
+        for (int i = 0; i < function.Parameters.Count; i++)
+        {
+            _variables.SetVariable(function.Parameters[i], Visit(functionCallNode.Arguments[i]).Value, _scopeLevel, true);
+        }
+    }
+
+    private bool ExecuteBody(AstNode bodyNode)
+    {
+        var hasCallReturnValues = _callReturnValue.Any();
+
+        while (bodyNode != null && hasCallReturnValues == false)
+        {
+            Visit(bodyNode);
+            bodyNode = bodyNode.Next;
+        }
+
+        return hasCallReturnValues;
+    }
+
+    private BodyHandler CreateBlockScope()
+    {
+        return new BodyHandler(() => _scopeLevel++, () =>
+        {
+            _variables.ClearScope(_scopeLevel);
+            _scopeLevel--;
+        });
+    }
+}
