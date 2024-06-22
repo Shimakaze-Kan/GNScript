@@ -319,7 +319,7 @@ public class Interpreter
         sb.AppendLine("[Functions]");
         foreach (var (name, function) in _functions)
         {
-            sb.AppendLine($"  {name} -> {{{string.Join(", ", function.Parameters)}}}");
+            sb.AppendLine($"  {name} <- {{{string.Join(", ", function.Parameters)}}}");
         }
 
         if (_functions.Count == 0)

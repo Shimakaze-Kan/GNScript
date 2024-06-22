@@ -15,8 +15,12 @@ public class Lexer
         int start = _position;
         _position++; // Skip initial quote
 
-        while (_position < _input.Length && _input[_position] != '"')
+        while (_position < _input.Length)
         {
+            if (_input[_position] == '"' && (_position == 0 || _input[_position - 1] != '\\'))
+            {
+                break;
+            }
             _position++;
         }
 
