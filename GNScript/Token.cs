@@ -8,6 +8,8 @@ public enum TokenType
     Minus,
     Multiply,
     Divide,
+    Modulo,
+    Power,
     LeftParen,
     RightParen,
     Assign,

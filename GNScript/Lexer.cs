@@ -54,11 +54,23 @@ public class Lexer
                     _position++;
                     break;
                 case '*':
-                    tokens.Add(new Token(TokenType.Multiply, "*"));
-                    _position++;
+                    if (_input[_position + 1] == '*')
+                    {
+                        tokens.Add(new Token(TokenType.Power, "**"));
+                        _position += 2;
+                    }
+                    else
+                    {
+                        tokens.Add(new Token(TokenType.Multiply, "*"));
+                        _position++;
+                    }
                     break;
                 case '/':
                     tokens.Add(new Token(TokenType.Divide, "/"));
+                    _position++;
+                    break;
+                case '%':
+                    tokens.Add(new Token(TokenType.Modulo, "%"));
                     _position++;
                     break;
                 case '(':

@@ -62,6 +62,10 @@ public class Interpreter
                         return leftValueInt * rightValueInt;
                     case TokenType.Divide:
                         return leftValueInt / rightValueInt;
+                    case TokenType.Modulo:
+                        return leftValueInt % rightValueInt;
+                    case TokenType.Power:
+                        return (int)Math.Pow(leftValueInt, rightValueInt);
                     case TokenType.GreaterThan:
                         return leftValueInt > rightValueInt ? 1 : 0;
                     case TokenType.GreaterThanOrEqual:

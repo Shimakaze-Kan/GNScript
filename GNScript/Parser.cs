@@ -296,7 +296,7 @@ public class Parser
         var left = ParsePrimary();
 
         while (_position < _tokens.Count &&
-               (_tokens[_position].Type == TokenType.Multiply || _tokens[_position].Type == TokenType.Divide))
+               (_tokens[_position].Type == TokenType.Multiply || _tokens[_position].Type == TokenType.Divide || _tokens[_position].Type == TokenType.Modulo || _tokens[_position].Type == TokenType.Power))
         {
             var operatorToken = _tokens[_position];
             _position++;
