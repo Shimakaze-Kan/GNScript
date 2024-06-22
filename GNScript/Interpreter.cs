@@ -194,7 +194,14 @@ public class Interpreter
                     {
                         _variables.ClearScope(callScopeLevel + 1);
                         _scopeLevel = callScopeLevel;
-                        var returnValue = _callReturnValue.Pop().ReturnValue;
+                        var callReturnValue = _callReturnValue.Pop();
+
+                        if (callReturnValue.IsVoid)
+                        {
+                            return ExecutionModel.Empty;
+                        }
+
+                        var returnValue = callReturnValue.ReturnValue;
                         return ExecutionModel.FromObject(returnValue);
                     }
                 }
@@ -257,6 +264,12 @@ public class Interpreter
         }
         else if (node is ReturnNode returnNode)
         {
+            if (returnNode.IsVoid)
+            {
+                _callReturnValue.Push(CallReturnValue.CreateVoidReturnValue());
+                return ExecutionModel.Empty;
+            }
+
             var returnValue = Visit(returnNode.Expression).Value;
             _callReturnValue.Push(new CallReturnValue(returnValue));
             return ExecutionModel.Empty;

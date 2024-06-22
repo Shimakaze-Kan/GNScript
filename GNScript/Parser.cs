@@ -44,6 +44,10 @@ public class Parser
         else if (_tokens[_position].Type == TokenType.Return)
         {
             _position++;
+            var isVoid = TryConsumeVoid();
+            if (isVoid)
+                return new ReturnNode(isVoid);
+
             var expression = ParseExpression();
             return new ReturnNode(expression);
         }
@@ -199,6 +203,17 @@ public class Parser
         }
 
         throw new Exception("Syntax error");
+    }
+
+    private bool TryConsumeVoid()
+    {
+        if (_tokens[_position].Type == TokenType.Void)
+        {
+            _position++;
+            return true;
+        }
+
+        return false;
     }
 
     private AstNode ParseFunctionDefinition()

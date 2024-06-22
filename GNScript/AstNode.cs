@@ -103,10 +103,16 @@ public class FunctionCallNode : AstNode
 public class ReturnNode : AstNode
 {
     public AstNode Expression { get; }
+    public bool IsVoid { get; }
 
     public ReturnNode(AstNode expression)
     {
         Expression = expression;
+    }
+
+    public ReturnNode(bool isVoid)
+    {
+        IsVoid = isVoid;
     }
 }
 

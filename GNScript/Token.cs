@@ -30,6 +30,7 @@ public enum TokenType
     For,
     EndBlock,
     Input,
+    Void,
     EOF
 }
 

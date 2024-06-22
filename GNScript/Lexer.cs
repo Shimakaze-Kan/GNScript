@@ -189,6 +189,9 @@ public class Lexer
                 return new Token(TokenType.EndBlock, value);
             case "input":
                 return new Token(TokenType.Input, value);
+            case "wuwei":
+            case "void":
+                return new Token(TokenType.Void, "void");
             default:
                 return new Token(TokenType.Identifier, value);
         }
