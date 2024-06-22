@@ -1,0 +1,18 @@
+function fib(n)
+  fp = 0
+  if n == 0
+    fp =0
+  else
+    fp = 0
+    fd = 1
+    for i = 0; i < n; i = i + 1
+      m = fp + fd
+      fp = fd
+      fd = m
+   end
+  end
+return fp
+
+for i = 0; i < 25; i = i + 1
+  print fib(i)
+end

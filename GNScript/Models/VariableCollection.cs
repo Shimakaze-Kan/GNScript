@@ -25,6 +25,7 @@ public class VariableCollection
             {
                 scope[name] = value;
                 foundVariable = true;
+                break;
             }
         }
 

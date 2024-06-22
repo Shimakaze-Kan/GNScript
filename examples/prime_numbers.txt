@@ -1,0 +1,23 @@
+function isPrime(num)
+  if num < 2
+    return 0
+  end
+  for i=2; i*i <= num; i=i+1
+    if num % i == 0
+      return 0
+    end
+  end
+return 1
+
+function printPrimes()
+  printInline "Provide number: "
+  n = input
+  print "Prime numbers:"
+  for i=2; i<=n; i=i+1
+    if isPrime(i)
+      print i
+    end
+  end
+return void
+
+printPrimes()

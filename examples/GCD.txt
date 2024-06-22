@@ -1,0 +1,23 @@
+function GCD(a, b)
+  while b <> 0
+    temp = b
+	b = a % b
+	a = temp
+  end
+return a
+
+function printGCD()
+  printInline "Enter the first number: "
+  a = input
+  printInline "Enter the second number: "
+  b = input
+  gcd = GCD(a, b)
+  printInline "The greatest common divisor of "
+  printInline a
+  printInline " and "
+  printInline b
+  printInline " is: "
+  print gcd
+return void
+
+printGCD()

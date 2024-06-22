@@ -1,0 +1,13 @@
+function printPascalTriangle(n)
+  for line = 0; line < n; line = line + 1
+    printInline " " * (n - line - 1)
+	value = 1
+	for i = 0; i <= line; i = i + 1
+	  printInline value
+	  printInline " "
+	  value = value * (line - i) / (i + 1)
+	end
+	print ""
+  end
+return void
+printPascalTriangle(5)
