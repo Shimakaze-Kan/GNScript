@@ -10,6 +10,7 @@ public class Interpreter
     private readonly Dictionary<string, FunctionNode> _functions = [];
     private readonly Stack<CallReturnValue> _callReturnValue = [];
     private int _scopeLevel = 0;
+    private bool _isForLoopParameterSection = false;
 
     public void Run(AstNode node)
     {
@@ -37,7 +38,7 @@ public class Interpreter
         else if (node is AssignmentNode assignmentNode)
         {
             var value = Visit(assignmentNode.Expression);
-            _variables.SetVariable(assignmentNode.Variable, value.Value, _scopeLevel);
+            _variables.SetVariable(assignmentNode.Variable, value.Value, _scopeLevel, _isForLoopParameterSection);
             return ExecutionModel.Empty;
         }
         else if (node is BinaryOperationNode binaryNode)
@@ -252,11 +253,20 @@ public class Interpreter
         {
             using (CreateBlockScope())
             {
-                for (Visit(forNode.Init); (int)Visit(forNode.Condition) != 0; Visit(forNode.Increment))
+                using (CreateForLoopParameterScope())
+                {
+                    Visit(forNode.Init);
+                }
+                for (; (int)Visit(forNode.Condition) != 0;)
                 {
                     var bodyNode = forNode.Body;
                     if (ExecuteBody(bodyNode))
                         return ExecutionModel.Empty;
+
+                    using (CreateForLoopParameterScope())
+                    {
+                        Visit(forNode.Increment);
+                    }
                 }
             }
 
@@ -340,5 +350,10 @@ public class Interpreter
             _variables.ClearScope(_scopeLevel);
             _scopeLevel--;
         });
+    }
+
+    private BodyHandler CreateForLoopParameterScope()
+    {
+        return new BodyHandler(() => _isForLoopParameterSection = true, () => _isForLoopParameterSection = false);
     }
 }
