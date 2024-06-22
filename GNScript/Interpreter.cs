@@ -164,6 +164,12 @@ public class Interpreter
                 }
             }
         }
+        else if (node is PrintInlineNode printInlineNode)
+        {
+            var value = Visit(printInlineNode.Expression).Value;
+            Console.Write(value);
+            return ExecutionModel.Empty;
+        }
         else if (node is PrintNode printNode)
         {
             var value = Visit(printNode.Expression).Value;

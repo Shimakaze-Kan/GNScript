@@ -38,6 +38,13 @@ public class PrintNode : AstNode
     }
 }
 
+public class PrintInlineNode : PrintNode
+{
+    public PrintInlineNode(AstNode expression) : base(expression)
+    {
+    }
+}
+
 public class VariableNode : AstNode
 {
     public string Name { get; }

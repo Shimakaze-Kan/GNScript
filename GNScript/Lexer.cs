@@ -173,6 +173,8 @@ public class Lexer
         {
             case "print":
                 return new Token(TokenType.Print, value);
+            case "printInline":
+                return new Token(TokenType.PrintInline, value);
             case "if":
                 return new Token(TokenType.If, value);
             case "else":

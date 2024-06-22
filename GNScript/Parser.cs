@@ -57,6 +57,12 @@ public class Parser
             var expression = ParseExpression();
             return new PrintNode(expression);
         }
+        else if (_tokens[_position].Type == TokenType.PrintInline)
+        {
+            _position++;
+            var expression = ParseExpression();
+            return new PrintInlineNode(expression);
+        }
         else if (_tokens[_position].Type == TokenType.Identifier)
         {
             if (_tokens[_position + 1].Type == TokenType.Assign)

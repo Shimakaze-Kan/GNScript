@@ -14,6 +14,7 @@ public enum TokenType
     RightParen,
     Assign,
     Print,
+    PrintInline,
     If,
     Else,
     GreaterThan,
