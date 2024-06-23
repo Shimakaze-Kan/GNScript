@@ -164,3 +164,51 @@ public class ForNode : AstNode
 public class InputNode : AstNode
 {
 }
+
+public class ArrayNode : AstNode
+{
+    public List<AstNode> Elements { get; }
+
+    public ArrayNode(List<AstNode> elements)
+    {
+        Elements = elements;
+    }
+}
+
+public class ArrayAccessNode : AstNode
+{
+    public string ArrayName { get; }
+    public AstNode Index { get; }
+
+    public ArrayAccessNode(string arrayName, AstNode index)
+    {
+        ArrayName = arrayName;
+        Index = index;
+    }
+}
+
+public class ArrayAddNode : AstNode
+{
+    public string ArrayName { get; }
+    public AstNode Element { get; }
+    public AstNode Index { get; }
+
+    public ArrayAddNode(string arrayName, AstNode element, AstNode index = null)
+    {
+        ArrayName = arrayName;
+        Element = element;
+        Index = index;
+    }
+}
+
+public class ArrayRemoveNode : AstNode
+{
+    public string ArrayName { get; }
+    public AstNode Index { get; }
+
+    public ArrayRemoveNode(string arrayName, AstNode index)
+    {
+        ArrayName = arrayName;
+        Index = index;
+    }
+}

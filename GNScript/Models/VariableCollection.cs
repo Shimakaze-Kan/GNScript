@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using GNScript.Helpers;
+using System.Text;
 
 namespace GNScript.Models;
 public class VariableCollection
@@ -76,7 +77,13 @@ public class VariableCollection
             {
                 var executionModel = ExecutionModel.FromObject(variable.Value);
 
-                sb.AppendLine($"  {{{variable.Key}: {variable.Value}}} [{executionModel.ModelType}]");
+                var variableValue = variable.Value;
+                if (executionModel.IsArray())
+                {
+                    variableValue = executionModel.ToPrintableArray();
+                }
+
+                sb.AppendLine($"  {{{variable.Key}: {variableValue}}} [{executionModel.ModelType}]");
             }
         }
 

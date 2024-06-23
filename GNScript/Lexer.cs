@@ -85,6 +85,14 @@ public class Lexer
                     tokens.Add(new Token(TokenType.RightParen, ")"));
                     _position++;
                     break;
+                case '[':
+                    tokens.Add(new Token(TokenType.LeftBracket, "["));
+                    _position++;
+                    break;
+                case ']':
+                    tokens.Add(new Token(TokenType.RightBracket, "]"));
+                    _position++;
+                    break;
                 case '=':
                     if (_input[_position + 1] == '=')
                     {

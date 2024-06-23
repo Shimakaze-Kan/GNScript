@@ -166,13 +166,25 @@ public class Interpreter
         }
         else if (node is PrintInlineNode printInlineNode)
         {
-            var value = Visit(printInlineNode.Expression).Value;
+            var model = Visit(printInlineNode.Expression);
+            var value = model.Value;
+
+            if (model.IsArray())
+            {
+                value = model.ToPrintableArray();
+            }
             Console.Write(value);
             return ExecutionModel.Empty;
         }
         else if (node is PrintNode printNode)
         {
-            var value = Visit(printNode.Expression).Value;
+            var model = Visit(printNode.Expression);
+            var value = model.Value;
+
+            if (model.IsArray())
+            {
+                value = model.ToPrintableArray();
+            }
             Console.WriteLine(value);
             return ExecutionModel.Empty;
         }
@@ -299,6 +311,11 @@ public class Interpreter
             }
 
             return input;
+        }
+        else if (node is ArrayNode arrayNode)
+        {
+            var elements = arrayNode.Elements.Select(Visit).Select(x => x.Value).ToList();
+            return ExecutionModel.FromObject(elements);
         }
 
         throw new Exception("AST node error");

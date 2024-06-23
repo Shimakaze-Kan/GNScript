@@ -356,6 +356,8 @@ public class Parser
                 }
                 _position++;
                 return expression;
+            case TokenType.LeftBracket:
+                return ParseArrayDeclaration();
             default:
                 throw new Exception($"Unexpected token: {token.Type}");
         }
@@ -372,5 +374,35 @@ public class Parser
         _position++;
 
         return new InputNode();
+    }
+
+    private AstNode ParseArrayDeclaration()
+    {
+        var elements = new List<AstNode>();
+
+        if (_tokens[_position].Type != TokenType.LeftBracket)
+        {
+            throw new Exception("Expected left bracket");
+        }
+
+        _position++; // [
+
+        while (_tokens[_position].Type != TokenType.RightBracket)
+        {
+            elements.Add(ParseExpression());
+            if (_tokens[_position].Type == TokenType.Comma)
+            {
+                _position++; // ,
+            }
+        }
+
+        if (_tokens[_position].Type != TokenType.RightBracket)
+        {
+            throw new Exception("Expected right bracket");
+        }
+
+        _position++; // ]
+
+        return new ArrayNode(elements);
     }
 }

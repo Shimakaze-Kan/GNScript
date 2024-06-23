@@ -12,6 +12,8 @@ public enum TokenType
     Power,
     LeftParen,
     RightParen,
+    LeftBracket,
+    RightBracket,
     Assign,
     Print,
     PrintInline,
@@ -32,6 +34,7 @@ public enum TokenType
     EndBlock,
     Input,
     Void,
+    Array,
     EOF
 }
 

@@ -1,4 +1,6 @@
-﻿namespace GNScript.Models;
+﻿using System.Collections;
+
+namespace GNScript.Models;
 public class ExecutionModel
 {
     public static ExecutionModel Empty => new(null, true);
@@ -8,19 +10,30 @@ public class ExecutionModel
 
     private ExecutionModel(object? value, bool isEmptyValue)
     {
-        var stringValue = (value ?? string.Empty).ToString();
-        if (int.TryParse(stringValue, out var valueInt))
+        if (isEmptyValue)
+        {
+            IsEmptyValue = isEmptyValue;
+            return;
+        }
+
+        if (IsListType(value))
+        {
+            ModelType = ExecutionModelValueType.Array;
+        }
+        else if (value is int)
         {
             ModelType = ExecutionModelValueType.Int;
-            Value = valueInt;
+        }
+        else if (value is string)
+        {
+            ModelType = ExecutionModelValueType.String;
         }
         else
         {
-            ModelType = ExecutionModelValueType.String;
-            Value = stringValue;
+            throw new Exception("Invalid type");
         }
 
-        IsEmptyValue = isEmptyValue;
+        Value = value;
     }
 
     public bool IsString()
@@ -31,6 +44,11 @@ public class ExecutionModel
     public bool IsInt()
     {
         return ModelType == ExecutionModelValueType.Int;
+    }
+
+    public bool IsArray()
+    {
+        return ModelType == ExecutionModelValueType.Array;
     }
 
     public static ExecutionModel FromObject(object value)
@@ -67,10 +85,29 @@ public class ExecutionModel
 
         return (string)model.Value;
     }
+
+    public static explicit operator List<object>(ExecutionModel model)
+    {
+        if (model.IsEmptyValue)
+        {
+            throw new Exception("Expected value");
+        }
+
+        return (model.Value as IList).Cast<object>().ToList();
+    }
+
+    private static bool IsListType(object? o)
+    {
+        if (o == null) return false;
+        return o is IList &&
+               o.GetType().IsGenericType &&
+               o.GetType().GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>));
+    }
 }
 
 public enum ExecutionModelValueType
 {
     Int,
     String,
+    Array
 }
