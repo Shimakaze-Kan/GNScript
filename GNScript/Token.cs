@@ -36,6 +36,7 @@ public enum TokenType
     Void,
     Array,
     ArrayRemoveAt,
+    Colon,
     EOF
 }
 

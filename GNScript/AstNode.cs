@@ -1,4 +1,7 @@
-﻿namespace GNScript;
+﻿using GNScript.Helpers;
+using GNScript.Models;
+
+namespace GNScript;
 public abstract class AstNode 
 {
     public AstNode Next { get; set; }
@@ -167,6 +170,7 @@ public class InputNode : AstNode
 
 public class ArrayNode : AstNode
 {
+    public static string[] Properties => EnumHelpers.GetEnumNamesLowercase<ArrayProperty>();
     public List<AstNode> Elements { get; }
 
     public ArrayNode(List<AstNode> elements)
@@ -189,13 +193,13 @@ public class ArrayAccessNode : AstNode
 
 public class ArrayAddNode : AstNode
 {
-    public string ArrayName { get; }
+    public AstNode Array { get; }
     public AstNode Element { get; }
     public AstNode Index { get; }
 
-    public ArrayAddNode(string arrayName, AstNode element, AstNode index = null)
+    public ArrayAddNode(AstNode array, AstNode element, AstNode index = null)
     {
-        ArrayName = arrayName;
+        Array = array;
         Element = element;
         Index = index;
     }
@@ -203,12 +207,24 @@ public class ArrayAddNode : AstNode
 
 public class ArrayRemoveNode : AstNode
 {
-    public string ArrayName { get; }
+    public AstNode Array { get; }
     public AstNode Index { get; }
 
-    public ArrayRemoveNode(string arrayName, AstNode index)
+    public ArrayRemoveNode(AstNode array, AstNode index)
     {
-        ArrayName = arrayName;
+        Array = array;
         Index = index;
+    }
+}
+
+public class PropertyAccessNode : AstNode
+{
+    public AstNode Node { get; }
+    public string PropertyName { get; }
+
+    public PropertyAccessNode(AstNode node, string propertyName)
+    {
+        Node = node;
+        PropertyName = propertyName;
     }
 }

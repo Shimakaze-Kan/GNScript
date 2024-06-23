@@ -336,10 +336,24 @@ public class Parser
         {
             case TokenType.Number:
                 _position++;
-                return new NumberNode(token.Value);
+                var numberNode = new NumberNode(token.Value);
+
+                if (_tokens[_position].Type == TokenType.Colon)
+                {
+                    return ParsePropertyAccess(numberNode);
+                }
+
+                return numberNode;
             case TokenType.String:
                 _position++;
-                return new StringNode(token.Value);
+                var stringNode = new StringNode(token.Value);
+
+                if (_tokens[_position].Type == TokenType.Colon)
+                {
+                    return ParsePropertyAccess(stringNode);
+                }
+
+                return stringNode;
             case TokenType.Identifier:
                 if (_tokens[_position + 1].Type == TokenType.LeftParen)
                 {
@@ -350,6 +364,11 @@ public class Parser
                 {
                     _position++;
                     return ParseArrayAccess(new VariableNode(token.Value));
+                }
+                else if (_tokens[_position + 1].Type == TokenType.Colon)
+                {
+                    _position++;
+                    return ParsePropertyAccess(new VariableNode(token.Value));
                 }
                 else
                 {
@@ -371,6 +390,10 @@ public class Parser
                 if (_tokens[_position].Type == TokenType.LeftBracket)
                 {
                     return ParseArrayAccess(array);
+                }
+                else if (_tokens[_position].Type == TokenType.Colon)
+                {
+                    return ParsePropertyAccess(array);
                 }
 
                 return array;
@@ -447,5 +470,21 @@ public class Parser
         }
 
         return arrayAccess;
+    }
+
+    private AstNode ParsePropertyAccess(AstNode node)
+    {
+        if (_tokens[_position].Type != TokenType.Colon)
+        {
+            throw new Exception("Expected left bracket");
+        }
+
+        _position++; // |
+
+        var property = _tokens[_position].Value;
+
+        _position++; // prop name
+
+        return new PropertyAccessNode(node, property);
     }
 }

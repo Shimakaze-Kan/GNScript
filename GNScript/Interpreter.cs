@@ -335,6 +335,39 @@ public class Interpreter
             var elements = arrayNode.Elements.Select(Visit).Select(x => x.Value).ToList();
             return ExecutionModel.FromObject(elements);
         }
+        else if (node is PropertyAccessNode propertyNode)
+        {
+            var nodeModel = Visit(propertyNode.Node);
+
+            if (nodeModel.IsEmptyValue)
+                return ExecutionModel.Empty;
+
+            var commonProperties = EnumHelpers.GetEnumNamesLowercase<CommonValueProperty>();
+            if (commonProperties.Contains(propertyNode.PropertyName))
+            {
+                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, CommonValueProperty.Type))
+                {
+                    return Enum.GetName(typeof(ExecutionModelValueType), nodeModel.ModelType);
+                }
+            }
+
+            if (nodeModel.IsArray() && ArrayNode.Properties.Contains(propertyNode.PropertyName))
+            {                
+                var arrayValue = (List<object>)nodeModel;
+
+                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Length))
+                {
+                    return arrayValue.Count;
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Reverse))
+                {
+                    arrayValue.Reverse();
+                    return ExecutionModel.FromObject(arrayValue);
+                }
+            }
+
+            throw new Exception($"Property '{propertyNode.PropertyName}' not found");
+        }
 
         throw new Exception("AST node error");
     }
