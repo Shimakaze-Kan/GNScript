@@ -1,0 +1,26 @@
+function countOccurences(arr)
+  n = arr : length
+  elements = [0] * n
+  counts = [0] * n
+  uniqueElements = 0
+  for i = 0; i < n; i = i + 1
+    found = 0
+    for j = 0; j < uniqueElements; j = j + 1
+      if elements[j] == arr[i]
+        counts = counts:replaceat(j, counts[j] + 1)
+        found = 1
+      end
+    end
+    if found == 0
+      elements = elements:replaceat(uniqueElements, arr[i])
+      counts = counts:replaceat(uniqueElements, 1)
+      uniqueElements = uniqueElements + 1
+    end
+  end
+  print "Element occurrences:"
+  for i = 0; i < uniqueElements; i = i + 1
+    print "Element " + elements[i] + ": " + counts[i] + " time(s)"
+  end
+return void
+
+countOccurences([5, 3, 8, 3, 2, 8, 8, 5, 3])

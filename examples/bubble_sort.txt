@@ -1,0 +1,18 @@
+function bubbleSort(arr)
+  n = arr : length
+  swapped = 1
+  while swapped
+    swapped = 0
+    for i = 1; i < n; i = i + 1
+      if arr[i - 1] > arr[i]
+        temp = arr[i - 1]
+        arr = arr:replaceat(i - 1, arr[i])
+        arr = arr:replaceat(i, temp)
+        swapped = 1
+      end
+    end
+    n = n - 1
+  end
+return arr
+
+print bubbleSort([3, 2, 1])

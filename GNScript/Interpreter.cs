@@ -133,6 +133,18 @@ public class Interpreter
                         throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
                 }
             }
+            else if (leftValue.IsArray() && rightValue.IsInt())
+            {
+                var leftValueArray = (List<object>)leftValue;
+                var rightValueInt = (int)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Multiply:
+                        return ExecutionModel.FromObject(leftValueArray.RepeatList(rightValueInt));
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
             else
             {
                 var leftValueString = (string)leftValue;

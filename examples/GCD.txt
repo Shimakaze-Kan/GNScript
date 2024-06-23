@@ -11,13 +11,7 @@ function printGCD()
   a = input
   printInline "Enter the second number: "
   b = input
-  gcd = GCD(a, b)
-  printInline "The greatest common divisor of "
-  printInline a
-  printInline " and "
-  printInline b
-  printInline " is: "
-  print gcd
+  print "The greatest common divisor of " + a + " and " + b + " is: " + GCD(a, b)
 return void
 
 printGCD()

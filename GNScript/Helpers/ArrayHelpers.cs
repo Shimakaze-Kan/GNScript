@@ -89,4 +89,16 @@ public static class ArrayHelpers
         }
         return newList;
     }
+
+    public static List<object> RepeatList(this List<object> list, int count)
+    {
+        List<object> result = [];
+
+        for (int i = 0; i < count; i++)
+        {
+            result.AddRange(list);
+        }
+
+        return result;
+    }
 }
