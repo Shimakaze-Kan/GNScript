@@ -357,7 +357,8 @@ public class Interpreter
 
             if (nodeModel.IsArray() && ArrayNode.Properties.Contains(propertyNode.PropertyName))
             {
-                var arrayValue = (List<object>)nodeModel;
+                var originalArrayValue = (List<object>)nodeModel;
+                var arrayValue = originalArrayValue.DeepCopy(); // GN Script array is not reference type by language convention
 
                 if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Length))
                 {
@@ -371,6 +372,62 @@ public class Interpreter
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.ToString))
                 {
                     return string.Join("", arrayValue);
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.RemoveAt))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 argument");
+                    var atModel = Visit(propertyNode.Arguments[0]);
+
+                    ExceptionsHelper.FailIfTrue(atModel.IsEmptyValue, "Expected value argument");
+                    ExceptionsHelper.FailIfFalse(atModel.IsInt(), "Expected Int argument");
+
+                    arrayValue.RemoveAt((int)atModel);
+                    return ExecutionModel.FromObject(arrayValue);
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Append))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(propertyNode.Arguments[0]);
+
+                    arrayValue.Add(valueModel.Value);
+                    return ExecutionModel.FromObject(arrayValue);
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.AddAt))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var atModel = Visit(propertyNode.Arguments[0]);
+                    var valueModel = Visit(propertyNode.Arguments[1]);
+
+                    ExceptionsHelper.FailIfFalse(atModel.IsInt(), "Expected Int argument");
+                    arrayValue.Insert((int)atModel, valueModel.Value);
+                    return ExecutionModel.FromObject(arrayValue);
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Prepend))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(propertyNode.Arguments[0]);
+
+                    arrayValue.Insert(0, valueModel.Value);
+                    return ExecutionModel.FromObject(arrayValue);
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.ReplaceAt))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count < 2, "Expected at least 2 arguments");
+
+                    List<object> parameters = [];
+                    for (int i = 0; i < propertyNode.Arguments.Count - 1; i++)
+                    {
+                        var indexModel = Visit(propertyNode.Arguments[i]);
+                        ExceptionsHelper.FailIfFalse(indexModel.IsInt(), "Expected Int argument");
+
+                        parameters.Add((int)indexModel);
+                    }
+
+                    var valueModel = Visit(propertyNode.Arguments[^1]);
+                    parameters.Add(valueModel.Value);
+                    arrayValue.ReplaceGNArray([.. parameters]);
+
+                    return ExecutionModel.FromObject(arrayValue);
                 }
             }
 

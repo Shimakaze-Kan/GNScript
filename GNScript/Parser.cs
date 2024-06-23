@@ -485,12 +485,44 @@ public class Parser
 
         _position++; // prop name
 
-        var propertyNode = new PropertyAccessNode(node, property);
+        var arguments = TryParsePropertyArguments();
+
+        var propertyNode = new PropertyAccessNode(node, property, arguments);
         while (_tokens[_position].Type == TokenType.Colon)
         {
             propertyNode = ParsePropertyAccess(propertyNode) as PropertyAccessNode;
         }
 
         return propertyNode;
+    }
+
+    private List<AstNode> TryParsePropertyArguments()
+    {
+        List<AstNode> arguments = [];
+        if (_tokens[_position].Type != TokenType.LeftParen)
+        {
+            return arguments;
+        }
+        _position++; // (
+
+        while (_tokens[_position].Type != TokenType.RightParen)
+        {
+            arguments.Add(ParseExpression());
+
+            if (_tokens[_position].Type == TokenType.Comma)
+            {
+                _position++; // Skip comma
+            }
+        }
+
+        // Ensure we are at a right parenthesis after parsing arguments
+        if (_tokens[_position].Type != TokenType.RightParen)
+        {
+            throw new Exception("Missing closing parenthesis after function call arguments");
+        }
+
+        _position++;
+
+        return arguments;
     }
 }

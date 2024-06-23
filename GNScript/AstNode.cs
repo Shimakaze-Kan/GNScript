@@ -221,10 +221,12 @@ public class PropertyAccessNode : AstNode
 {
     public AstNode Node { get; }
     public string PropertyName { get; }
+    public List<AstNode> Arguments { get; }
 
-    public PropertyAccessNode(AstNode node, string propertyName)
+    public PropertyAccessNode(AstNode node, string propertyName, List<AstNode> arguments)
     {
         Node = node;
         PropertyName = propertyName;
+        Arguments = arguments;
     }
 }

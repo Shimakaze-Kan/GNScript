@@ -4,6 +4,11 @@ public enum ArrayProperty
     Length,
     Reverse,
     ToString,
+    RemoveAt,
+    AddAt,
+    Append,
+    Prepend,
+    ReplaceAt
 }
 
 public enum CommonValueProperty
