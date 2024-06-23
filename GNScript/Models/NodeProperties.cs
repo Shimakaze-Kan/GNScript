@@ -3,6 +3,7 @@ public enum ArrayProperty
 {
     Length,
     Reverse,
+    ToString,
 }
 
 public enum CommonValueProperty
@@ -14,5 +15,6 @@ public enum StringProperty
 {
     ToLower,
     ToUpper,
-    Reverse
+    Reverse,
+    ToArray
 }

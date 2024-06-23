@@ -368,6 +368,10 @@ public class Interpreter
                     arrayValue.Reverse();
                     return ExecutionModel.FromObject(arrayValue);
                 }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.ToString))
+                {
+                    return string.Join("", arrayValue);
+                }
             }
 
             var stringProperties = EnumHelpers.GetEnumNamesLowercase<StringProperty>();
@@ -385,6 +389,10 @@ public class Interpreter
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Reverse))
                 {
                     return string.Join("", stringValue.Reverse());
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToArray))
+                {
+                    return ExecutionModel.FromObject(stringValue.ToList());
                 }
             }
 
