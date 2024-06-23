@@ -97,9 +97,17 @@ public class Lexer
                     tokens.Add(new Token(TokenType.ArrayRemoveAt, "~"));
                     _position++;
                     break;
-                case '|':
-                    tokens.Add(new Token(TokenType.Colon, "|"));
+                case ':':
+                    tokens.Add(new Token(TokenType.Colon, ":"));
                     _position++;
+                    break;
+                case '&' when _input[_position + 1] == '&':
+                    tokens.Add(new Token(TokenType.AndOperator, "&&"));
+                    _position += 2;
+                    break;
+                case '|' when _input[_position + 1] == '|':
+                    tokens.Add(new Token(TokenType.OrOperator, "||"));
+                    _position += 2;
                     break;
                 case '=':
                     if (_input[_position + 1] == '=')

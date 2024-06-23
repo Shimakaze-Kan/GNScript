@@ -65,6 +65,10 @@ public class Interpreter
                         return leftValueInt / rightValueInt;
                     case TokenType.Modulo:
                         return leftValueInt % rightValueInt;
+                    case TokenType.AndOperator:
+                        return leftValueInt != 0 && rightValueInt != 0 ? 1 : 0;
+                    case TokenType.OrOperator:
+                        return leftValueInt != 0 || rightValueInt != 0 ? 1 : 0;
                     case TokenType.Power:
                         return (int)Math.Pow(leftValueInt, rightValueInt);
                     case TokenType.GreaterThan:
@@ -352,7 +356,7 @@ public class Interpreter
             }
 
             if (nodeModel.IsArray() && ArrayNode.Properties.Contains(propertyNode.PropertyName))
-            {                
+            {
                 var arrayValue = (List<object>)nodeModel;
 
                 if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Length))

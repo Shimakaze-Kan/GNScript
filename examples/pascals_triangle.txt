@@ -3,8 +3,7 @@ function printPascalTriangle(n)
     printInline " " * (n - line - 1)
 	value = 1
 	for i = 0; i <= line; i = i + 1
-	  printInline value
-	  printInline " "
+	  printInline value + " "
 	  value = value * (line - i) / (i + 1)
 	end
 	print ""

@@ -37,6 +37,8 @@ public enum TokenType
     Array,
     ArrayRemoveAt,
     Colon,
+    AndOperator,
+    OrOperator,
     EOF
 }
 

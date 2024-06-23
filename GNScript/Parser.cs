@@ -301,7 +301,7 @@ public class Parser
         var left = ParseFactor();
 
         while (_position < _tokens.Count &&
-               (_tokens[_position].Type == TokenType.Plus || _tokens[_position].Type == TokenType.Minus))
+               (_tokens[_position].Type == TokenType.Plus || _tokens[_position].Type == TokenType.Minus || _tokens[_position].Type == TokenType.AndOperator || _tokens[_position].Type == TokenType.OrOperator))
         {
             var operatorToken = _tokens[_position];
             _position++;

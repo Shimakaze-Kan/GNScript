@@ -82,6 +82,10 @@ public class VariableCollection
                 {
                     variableValue = executionModel.ToPrintableArray();
                 }
+                else if (executionModel.IsString())
+                {
+                    variableValue = @$"""{variableValue}""";
+                }
 
                 sb.AppendLine($"  {{{variable.Key}: {variableValue}}} [{executionModel.ModelType}]");
             }
