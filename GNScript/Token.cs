@@ -35,6 +35,7 @@ public enum TokenType
     Input,
     Void,
     Array,
+    ArrayRemoveAt,
     EOF
 }
 

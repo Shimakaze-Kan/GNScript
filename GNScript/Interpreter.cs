@@ -312,6 +312,24 @@ public class Interpreter
 
             return input;
         }
+        else if (node is ArrayAccessNode arrayAccessNode)
+        {
+            var model = Visit(arrayAccessNode.Array);
+
+            if (model.IsArray() == false)
+            {
+                throw new InvalidOperationException("Cannot access array");
+            }
+
+            var arrayValue = (List<object>)model;
+            var indexModel = Visit(arrayAccessNode.Index);
+            if (indexModel.IsInt() == false)
+            {
+                throw new InvalidOperationException("Array index should be a number");
+            }
+
+            return ExecutionModel.FromObject(arrayValue[(int)indexModel]);
+        }
         else if (node is ArrayNode arrayNode)
         {
             var elements = arrayNode.Elements.Select(Visit).Select(x => x.Value).ToList();

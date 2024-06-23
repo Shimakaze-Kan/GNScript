@@ -177,12 +177,12 @@ public class ArrayNode : AstNode
 
 public class ArrayAccessNode : AstNode
 {
-    public string ArrayName { get; }
+    public AstNode Array { get; }
     public AstNode Index { get; }
 
-    public ArrayAccessNode(string arrayName, AstNode index)
+    public ArrayAccessNode(AstNode array, AstNode index)
     {
-        ArrayName = arrayName;
+        Array = array;
         Index = index;
     }
 }

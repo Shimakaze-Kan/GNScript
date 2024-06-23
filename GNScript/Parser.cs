@@ -82,7 +82,7 @@ public class Parser
             else if (_tokens[_position + 1].Type == TokenType.LeftParen)
             {
                 return ParseFunctionCall();
-            }            
+            }
         }
         else if (_tokens[_position].Type == TokenType.If)
         {
@@ -345,8 +345,17 @@ public class Parser
                 {
                     return ParseFunctionCall();
                 }
-                _position++;
-                return new VariableNode(token.Value);
+
+                if (_tokens[_position + 1].Type == TokenType.LeftBracket)
+                {
+                    _position++;
+                    return ParseArrayAccess(new VariableNode(token.Value));
+                }
+                else
+                {
+                    _position++;
+                    return new VariableNode(token.Value);
+                }
             case TokenType.LeftParen:
                 _position++;
                 var expression = ParseExpression();
@@ -357,7 +366,14 @@ public class Parser
                 _position++;
                 return expression;
             case TokenType.LeftBracket:
-                return ParseArrayDeclaration();
+                var array = ParseArrayDeclaration();
+
+                if (_tokens[_position].Type == TokenType.LeftBracket)
+                {
+                    return ParseArrayAccess(array);
+                }
+
+                return array;
             default:
                 throw new Exception($"Unexpected token: {token.Type}");
         }
@@ -404,5 +420,32 @@ public class Parser
         _position++; // ]
 
         return new ArrayNode(elements);
+    }
+
+    private AstNode ParseArrayAccess(AstNode array)
+    {
+        if (_tokens[_position].Type != TokenType.LeftBracket)
+        {
+            throw new Exception("Expected left bracket");
+        }
+
+        _position++; // [
+
+        var index = ParseExpression();
+
+        if (_tokens[_position].Type != TokenType.RightBracket)
+        {
+            throw new Exception("Expected right bracket");
+        }
+
+        _position++; // ]
+
+        var arrayAccess = new ArrayAccessNode(array, index);
+        while (_tokens[_position].Type == TokenType.LeftBracket)
+        {
+            arrayAccess = ParseArrayAccess(arrayAccess) as ArrayAccessNode;
+        }
+
+        return arrayAccess;
     }
 }
