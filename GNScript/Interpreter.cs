@@ -370,6 +370,24 @@ public class Interpreter
                 }
             }
 
+            var stringProperties = EnumHelpers.GetEnumNamesLowercase<StringProperty>();
+            if (nodeModel.IsString() && stringProperties.Contains(propertyNode.PropertyName))
+            {
+                var stringValue = (string)nodeModel;
+                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToLower))
+                {
+                    return stringValue.ToLower();
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToUpper))
+                {
+                    return stringValue.ToUpper();
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Reverse))
+                {
+                    return string.Join("", stringValue.Reverse());
+                }
+            }
+
             throw new Exception($"Property '{propertyNode.PropertyName}' not found");
         }
 

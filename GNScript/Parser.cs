@@ -485,6 +485,12 @@ public class Parser
 
         _position++; // prop name
 
-        return new PropertyAccessNode(node, property);
+        var propertyNode = new PropertyAccessNode(node, property);
+        while (_tokens[_position].Type == TokenType.Colon)
+        {
+            propertyNode = ParsePropertyAccess(propertyNode) as PropertyAccessNode;
+        }
+
+        return propertyNode;
     }
 }
