@@ -272,7 +272,14 @@ public class Parser
         }
 
         _position++; // Skip right parenthesis
-        return new FunctionCallNode(functionName, arguments);
+        var functionCallNode = new FunctionCallNode(functionName, arguments);
+
+        if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+        {
+            return ParsePropertyAccess(functionCallNode);
+        }
+
+        return functionCallNode;
     }
 
     private AstNode ParseExpression()
