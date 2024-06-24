@@ -75,6 +75,10 @@ public class Parser
                     var value = ParseInput();
                     return new AssignmentNode(variableName, value);
                 }
+                else if (_tokens[_position].Type == TokenType.Create)
+                {
+                    return ParseStructInstance(instanceName: variableName);
+                }
 
                 var expression = ParseExpression();
                 return new AssignmentNode(variableName, expression);
@@ -82,6 +86,10 @@ public class Parser
             else if (_tokens[_position + 1].Type == TokenType.LeftParen)
             {
                 return ParseFunctionCall();
+            }
+            if (_tokens[_position + 1].Type == TokenType.Dot)
+            {
+                return ParseStructFieldAssigment();
             }
         }
         else if (_tokens[_position].Type == TokenType.If)
@@ -116,6 +124,10 @@ public class Parser
             var increment = ParseStatement();
             var body = ParseBody();
             return new ForNode(init, condition, increment, body);
+        }
+        else if (_tokens[_position].Type == TokenType.Struct)
+        {
+            return ParseStructDeclaration();
         }
 
         return ParseExpression();
@@ -377,6 +389,17 @@ public class Parser
                     _position++;
                     return ParsePropertyAccess(new VariableNode(token.Value));
                 }
+                else if (_tokens[_position + 1].Type == TokenType.Dot)
+                {
+                    var structFieldAccess = ParseStructFieldAccess();
+
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after struc field access
+                    {
+                        return ParsePropertyAccess(structFieldAccess);
+                    }
+
+                    return structFieldAccess;
+                }
                 else
                 {
                     _position++;
@@ -407,6 +430,51 @@ public class Parser
             default:
                 throw new Exception($"Unexpected token: {token.Type}");
         }
+    }
+
+    private AstNode ParseStructFieldAssigment()
+    {
+        var instanceName = _tokens[_position].Value;
+        _position++; // identifier
+
+        if (_tokens[_position].Type != TokenType.Dot)
+        {
+            throw new Exception("Expected dot");
+        }
+        _position++; // .
+
+        if (_tokens[_position].Type != TokenType.Identifier)
+        {
+            throw new Exception("Expected field name");
+        }
+        var fieldName = _tokens[_position].Value;
+        _position++; // fieldname
+
+        if (_tokens[_position].Type != TokenType.Assign)
+        {
+            throw new Exception("Expected assign sign");
+        }
+        _position++; // =
+
+        var value = ParseExpression();
+
+        return new StructFieldAssignmentNode(instanceName, fieldName, value);
+    }
+
+    private AstNode ParseStructFieldAccess()
+    {
+        var instanceName = _tokens[_position].Value;
+        _position += 2; // identifier and .
+
+        if (_tokens[_position].Type != TokenType.Identifier)
+        {
+            throw new Exception("Expected field name");
+        }
+
+        var fieldName = _tokens[_position].Value;
+        _position++; // field name
+
+        return new StructFieldAccessNode(instanceName, fieldName);
     }
 
     private AstNode ParseInput()
@@ -501,6 +569,70 @@ public class Parser
         }
 
         return propertyNode;
+    }
+
+    private AstNode ParseStructDeclaration()
+    {
+        if (_tokens[_position].Type != TokenType.Struct)
+        {
+            throw new Exception("Expected struct declaration");
+        }
+
+        _position++; // struct
+
+        if (_tokens[_position].Type != TokenType.Identifier)
+        {
+            throw new Exception("Expected struct name");
+        }
+
+        var structName = _tokens[_position].Value;
+        _position++; // struct name
+
+        var fields = new List<VariableDeclarationNode>();
+        while (_tokens[_position].Type != TokenType.EndBlock)
+        {
+            if (_tokens[_position].Type != TokenType.Identifier)
+            {
+                throw new Exception("Expected field name");
+            }
+
+            var fieldName = _tokens[_position].Value;
+
+            _position++; // field name
+
+            if (_tokens[_position].Type != TokenType.Colon)
+            {
+                throw new Exception("Expected colon");
+            }
+
+            _position++; // :
+
+            var initialValue = ParseExpression();
+            fields.Add(new VariableDeclarationNode(fieldName, initialValue));
+        }
+
+        _position++; // end
+
+        return new StructNode(structName, fields);
+    }
+
+    private AstNode ParseStructInstance(string instanceName)
+    {
+        if (_tokens[_position].Type != TokenType.Create)
+        {
+            throw new Exception("Expected create keyword");
+        }
+        _position++; // create
+
+        if (_tokens[_position].Type != TokenType.Identifier)
+        {
+            throw new Exception("Expected struct name");
+        }
+
+        var structName = _tokens[_position].Value;
+        _position++; // struct name
+
+        return new StructInstanceNode(structName, instanceName);
     }
 
     private List<AstNode> TryParsePropertyArguments()

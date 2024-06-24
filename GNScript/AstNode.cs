@@ -230,3 +230,65 @@ public class PropertyAccessNode : AstNode
         Arguments = arguments;
     }
 }
+
+public class StructNode : AstNode
+{
+    public string Name { get; }
+    public List<VariableDeclarationNode> Fields { get; }
+
+    public StructNode(string name, List<VariableDeclarationNode> fields)
+    {
+        Name = name;
+        Fields = fields;
+    }
+}
+
+public class VariableDeclarationNode : AstNode
+{
+    public string Name { get; }
+    public AstNode InitialValue { get; }
+
+    public VariableDeclarationNode(string name, AstNode initialValue = null)
+    {
+        Name = name;
+        InitialValue = initialValue;
+    }
+}
+
+public class StructInstanceNode : AstNode
+{
+    public string StructName { get; }
+    public string InstanceName { get; }
+
+    public StructInstanceNode(string structName, string instanceName)
+    {
+        StructName = structName;
+        InstanceName = instanceName;
+    }
+}
+
+public class StructFieldAccessNode : AstNode
+{
+    public string InstanceName { get; }
+    public string FieldName { get; }
+
+    public StructFieldAccessNode(string instanceName, string fieldName)
+    {
+        InstanceName = instanceName;
+        FieldName = fieldName;
+    }
+}
+
+public class StructFieldAssignmentNode : AstNode
+{
+    public string InstanceName { get; }
+    public string FieldName { get; }
+    public AstNode Value { get; }
+
+    public StructFieldAssignmentNode(string instanceName, string fieldName, AstNode value)
+    {
+        InstanceName = instanceName;
+        FieldName = fieldName;
+        Value = value;
+    }
+}

@@ -76,16 +76,7 @@ public class VariableCollection
             foreach (var variable in scope.Value)
             {
                 var executionModel = ExecutionModel.FromObject(variable.Value);
-
-                var variableValue = variable.Value;
-                if (executionModel.IsArray())
-                {
-                    variableValue = executionModel.ToPrintableArray();
-                }
-                else if (executionModel.IsString())
-                {
-                    variableValue = @$"""{variableValue}""";
-                }
+                var variableValue = executionModel.ToPrintable();
 
                 sb.AppendLine($"  {{{variable.Key}: {variableValue}}} [{executionModel.ModelType}]");
             }

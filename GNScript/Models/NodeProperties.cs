@@ -8,7 +8,8 @@ public enum ArrayProperty
     AddAt,
     Append,
     Prepend,
-    ReplaceAt
+    ReplaceAt,
+    Has
 }
 
 public enum CommonValueProperty
@@ -23,4 +24,10 @@ public enum StringProperty
     Reverse,
     ToArray,
     Length
+}
+
+public enum StructProperty
+{
+    IsInstanceOf,
+    HasField
 }

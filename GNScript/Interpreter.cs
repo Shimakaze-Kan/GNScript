@@ -8,6 +8,7 @@ public class Interpreter
 {
     private readonly VariableCollection _variables = new();
     private readonly Dictionary<string, FunctionNode> _functions = [];
+    private readonly Dictionary<string, StructNode> _structDefinitions = [];
     private readonly Stack<CallReturnValue> _callReturnValue = [];
     private int _scopeLevel = 0;
     private bool _isForLoopParameterSection = false;
@@ -288,25 +289,13 @@ public class Interpreter
         else if (node is PrintInlineNode printInlineNode)
         {
             var model = Visit(printInlineNode.Expression);
-            var value = model.Value;
-
-            if (model.IsArray())
-            {
-                value = model.ToPrintableArray();
-            }
-            Console.Write(value);
+            Console.Write(model.ToPrintable());
             return ExecutionModel.Empty;
         }
         else if (node is PrintNode printNode)
         {
             var model = Visit(printNode.Expression);
-            var value = model.Value;
-
-            if (model.IsArray())
-            {
-                value = model.ToPrintableArray();
-            }
-            Console.WriteLine(value);
+            Console.WriteLine(model.ToPrintable());
             return ExecutionModel.Empty;
         }
         else if (node is FunctionNode functionNode)
@@ -546,6 +535,13 @@ public class Interpreter
 
                     return ExecutionModel.FromObject(arrayValue);
                 }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Has))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(propertyNode.Arguments[0]);
+
+                    return arrayValue.Contains(valueModel.Value) ? 1 : 0;
+                }
             }
 
             var stringProperties = EnumHelpers.GetEnumNamesLowercase<StringProperty>();
@@ -574,7 +570,73 @@ public class Interpreter
                 }
             }
 
+            var structProperties = EnumHelpers.GetEnumNamesLowercase<StructProperty>();
+            if (nodeModel.IsStruct() && structProperties.Contains(propertyNode.PropertyName))
+            {
+                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StructProperty.IsInstanceOf))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected struct name");
+                    var structName = (string)valueModel;
+
+                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName);
+                    var instanceFields = @struct.Keys.ToList();
+                    var definitionFields = _structDefinitions[structName].Fields.ConvertAll(field => field.Name);
+
+                    var sameFields = Enumerable.SequenceEqual(definitionFields.Order(), instanceFields.Order());
+                    return sameFields ? 1 : 0;
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StructProperty.HasField))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected field name");
+                    var fieldName = (string)valueModel;
+
+                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName);
+                    var instanceFields = @struct.Keys.ToList();
+
+                    return instanceFields.Contains(fieldName) ? 1 : 0;
+                }
+            }
+
             throw new Exception($"Property '{propertyNode.PropertyName}' not found");
+        }
+        else if (node is StructNode structNode)
+        {
+            var fieldNames = structNode.Fields.ConvertAll(f => f.Name);
+            ExceptionsHelper.FailIfTrue(fieldNames.Distinct().Count() != fieldNames.Count, "Redeclaration of structure field");
+
+            _structDefinitions[structNode.Name] = structNode;
+            return ExecutionModel.Empty;
+        }
+        else if (node is StructInstanceNode structInstanceNode)
+        {
+            var structDefinition = _structDefinitions[structInstanceNode.StructName];
+            var instance = new Dictionary<string, object>();
+
+            foreach (var field in structDefinition.Fields)
+            {
+                instance[field.Name] = Visit(field.InitialValue).Value;
+            }
+
+            _variables.SetVariable(structInstanceNode.InstanceName, instance);
+
+            return ExecutionModel.Empty;
+        }
+        else if (node is StructFieldAccessNode structFieldAccessNode)
+        {
+            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAccessNode.InstanceName);
+            return ExecutionModel.FromObject(instance[structFieldAccessNode.FieldName]);
+        }
+        else if (node is StructFieldAssignmentNode structFieldAssignmentNode)
+        {
+            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAssignmentNode.InstanceName);
+            instance[structFieldAssignmentNode.FieldName] = Visit(structFieldAssignmentNode.Value).Value;
+            return ExecutionModel.Empty;
         }
 
         throw new Exception("AST node error");
@@ -599,7 +661,17 @@ public class Interpreter
         }
 
         if (_functions.Count == 0)
-            sb.AppendLine("  No functions to display.");
+            sb.AppendLine("  No functions to display.\n");
+
+        sb.AppendLine("[Structs]");
+        foreach (var (name, @struct) in _structDefinitions)
+        {
+            var fieldNames = @struct.Fields.ConvertAll(f => f.Name);
+            sb.AppendLine($"  {name} : {{{string.Join(", ", fieldNames)}}}");
+        }
+
+        if (_structDefinitions.Count == 0)
+            sb.AppendLine("  No structs to display.");
 
         Console.WriteLine(sb);
     }

@@ -101,6 +101,10 @@ public class Lexer
                     tokens.Add(new Token(TokenType.Colon, ":"));
                     _position++;
                     break;
+                case '.':
+                    tokens.Add(new Token(TokenType.Dot, "."));
+                    _position++;
+                    break;
                 case '&' when _input[_position + 1] == '&':
                     tokens.Add(new Token(TokenType.AndOperator, "&&"));
                     _position += 2;
@@ -219,6 +223,10 @@ public class Lexer
                 return new Token(TokenType.EndBlock, value);
             case "input":
                 return new Token(TokenType.Input, value);
+            case "struct":
+                return new Token(TokenType.Struct, value);
+            case "create":
+                return new Token(TokenType.Create, value);
             case "wuwei":
             case "void":
                 return new Token(TokenType.Void, "void");

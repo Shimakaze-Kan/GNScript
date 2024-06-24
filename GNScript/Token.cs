@@ -39,6 +39,9 @@ public enum TokenType
     Colon,
     AndOperator,
     OrOperator,
+    Dot,
+    Struct,
+    Create,
     EOF
 }
 

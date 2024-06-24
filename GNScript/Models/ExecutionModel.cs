@@ -1,5 +1,6 @@
 ﻿using GNScript.Helpers;
 using System.Collections;
+using System.Text;
 
 namespace GNScript.Models;
 public class ExecutionModel
@@ -20,6 +21,10 @@ public class ExecutionModel
         if (IsListType(value))
         {
             ModelType = ExecutionModelValueType.Array;
+        }
+        else if (IsDictionaryType(value))
+        {
+            ModelType = ExecutionModelValueType.Struct;
         }
         else if (value is int)
         {
@@ -50,6 +55,11 @@ public class ExecutionModel
     public bool IsArray()
     {
         return ModelType == ExecutionModelValueType.Array;
+    }
+    
+    public bool IsStruct()
+    {
+        return ModelType == ExecutionModelValueType.Struct;
     }
 
     public static ExecutionModel FromObject(object value)
@@ -96,6 +106,43 @@ public class ExecutionModel
 
         return (model.Value as IList).Cast<object>().ToList().DeepCopy();
     }
+    
+    public static explicit operator Dictionary<string, object>(ExecutionModel model)
+    {
+        if (model.IsEmptyValue)
+        {
+            throw new Exception("Expected value");
+        }
+
+        return model.Value as Dictionary<string, object>;
+    }
+
+    public string ToPrintable()
+    {
+        if (IsEmptyValue)
+            return string.Empty;
+
+        return ConvertToString(Value);
+    }
+
+    private static string ConvertToString(object? value)
+    {
+        if (value == null)
+            return "(void)";
+
+        var model = FromObject(value);
+
+        if (model.IsArray())
+            return ConvertListToString((IList)value);
+
+        if (model.IsStruct())
+            return ConvertDictionaryToString((IDictionary)value);
+
+        if (model.IsString())
+            return @$"""{value}""";
+
+        return value.ToString() ?? string.Empty;
+    }
 
     private static bool IsListType(object? o)
     {
@@ -104,11 +151,55 @@ public class ExecutionModel
                o.GetType().IsGenericType &&
                o.GetType().GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>));
     }
+
+    private static bool IsDictionaryType(object? o)
+    {
+        if (o == null) return false;
+        return o is IDictionary &&
+               o.GetType().IsGenericType &&
+               o.GetType().GetGenericTypeDefinition().IsAssignableFrom(typeof(Dictionary<,>));
+    }
+
+    private static string ConvertListToString(IList list)
+    {
+        var sb = new StringBuilder();
+        sb.Append("[");
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            sb.Append(ConvertToString(list[i]));
+            if (i < list.Count - 1)
+                sb.Append(", ");
+        }
+
+        sb.Append("]");
+        return sb.ToString();
+    }
+
+    private static string ConvertDictionaryToString(IDictionary dictionary)
+    {
+        var sb = new StringBuilder();
+        sb.Append("{");
+
+        foreach (DictionaryEntry kvp in dictionary)
+        {
+            sb.AppendFormat("{0}: {1}, ", kvp.Key, ConvertToString(kvp.Value));
+        }
+
+        if (dictionary.Count > 0)
+        {
+            sb.Length -= 2; // Remove the last comma and space
+        }
+
+        sb.Append("}");
+        return sb.ToString();
+    }
 }
 
 public enum ExecutionModelValueType
 {
     Int,
     String,
-    Array
+    Array,
+    Struct
 }
