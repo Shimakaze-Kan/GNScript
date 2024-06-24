@@ -21,5 +21,6 @@ public enum StringProperty
     ToLower,
     ToUpper,
     Reverse,
-    ToArray
+    ToArray,
+    Length
 }

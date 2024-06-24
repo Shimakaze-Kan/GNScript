@@ -101,4 +101,82 @@ public static class ArrayHelpers
 
         return result;
     }
+
+    public static List<List<object>> Chunk(List<object> source, int n)
+    {
+        if (n <= 0)
+        {
+            throw new ArgumentException("Number of parts must be greater than zero.", nameof(n));
+        }
+
+        List<List<object>> result = [];
+        int totalCount = source.Count;
+        int size = (int)Math.Ceiling((double)totalCount / n);
+
+        for (int i = 0; i < n; i++)
+        {
+            result.Add(source.Skip(i * size).Take(size).ToList());
+        }
+
+        return result;
+    }
+
+    public static int CountOccurrences(this List<object> list1, List<object> list2)
+    {
+        if (list1.Count % list2.Count != 0)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        int length = list2.Count;
+
+        for (int i = 0; i <= list1.Count - length; i += length)
+        {
+            bool match = true;
+            for (int j = 0; j < length; j++)
+            {
+                if (!list1[i + j].Equals(list2[j]))
+                {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match)
+            {
+                count++;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        return count;
+    }
+
+    public static List<List<object>> MultiplyLists(this List<object> list1, List<int> list2)
+    {
+        if (list1.Count != list2.Count)
+        {
+            throw new ArgumentException("Both lists must have the same length.");
+        }
+
+        List<List<object>> result = [];
+
+        for (int i = 0; i < list1.Count; i++)
+        {
+            List<object> innerList = [];
+
+            for (int j = 0; j < list2[i]; j++)
+            {
+                innerList.Add(list1[i]);
+            }
+
+            result.Add(innerList);
+        }
+
+        return result;
+    }
 }

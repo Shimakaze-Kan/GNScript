@@ -139,8 +139,113 @@ public class Interpreter
                 var rightValueInt = (int)rightValue;
                 switch (binaryNode.Operator.Type)
                 {
+                    case TokenType.Plus:
+                        leftValueArray.Add(rightValueInt);
+                        return ExecutionModel.FromObject(leftValueArray);
+                    case TokenType.Minus:
+                        var trimmedArray = leftValueArray[0..^rightValueInt];
+                        return ExecutionModel.FromObject(trimmedArray);
+                    case TokenType.Divide:
+                        return ExecutionModel.FromObject(leftValueArray.Chunk(rightValueInt));
                     case TokenType.Multiply:
                         return ExecutionModel.FromObject(leftValueArray.RepeatList(rightValueInt));
+                    case TokenType.LessThan:
+                        return leftValueArray.Count < rightValueInt ? 1 : 0;
+                    case TokenType.LessThanOrEqual:
+                        return leftValueArray.Count <= rightValueInt ? 1 : 0;
+                    case TokenType.Equal:
+                        return leftValueArray.Count == rightValueInt ? 1 : 0;
+                    case TokenType.NotEqual:
+                        return leftValueArray.Count != rightValueInt ? 1 : 0;
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+            else if (leftValue.IsInt() && rightValue.IsArray())
+            {
+                var leftValueInt = (int)leftValue;
+                var rightValueArray = (List<object>)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        var extenedArray = rightValueArray.Prepend(leftValueInt).ToList();
+                        return ExecutionModel.FromObject(extenedArray);
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+            else if (leftValue.IsString() && rightValue.IsArray())
+            {
+                var leftValueString = (string)leftValue;
+                var rightValueArray = (List<object>)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        var extenedArray = rightValueArray.Prepend(leftValueString).ToList();
+                        return ExecutionModel.FromObject(extenedArray);
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+            else if (leftValue.IsArray() && rightValue.IsString())
+            {
+                var leftValueArray = (List<object>)leftValue;
+                var rightValueString = (string)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        var extenedArray = leftValueArray.Append(rightValueString).ToList();
+                        return ExecutionModel.FromObject(extenedArray);
+                    default:
+                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                }
+            }
+            else if (leftValue.IsArray() && rightValue.IsArray())
+            {
+                var leftValueArray = (List<object>)leftValue;
+                var rightValueArray = (List<object>)rightValue;
+                switch (binaryNode.Operator.Type)
+                {
+                    case TokenType.Plus:
+                        leftValueArray.AddRange(rightValueArray);
+                        return ExecutionModel.FromObject(leftValueArray);
+                    case TokenType.Minus:
+                        if (rightValueArray.Count <= leftValueArray.Count)
+                        {
+                            bool endsMatch = true;
+                            for (int i = 0; i < rightValueArray.Count; i++)
+                            {
+                                if (!rightValueArray[rightValueArray.Count - 1 - i].Equals(leftValueArray[leftValueArray.Count - 1 - i]))
+                                {
+                                    endsMatch = false;
+                                    break;
+                                }
+                            }
+
+                            if (endsMatch)
+                            {
+                                return ExecutionModel.FromObject(leftValueArray.Take(leftValueArray.Count - rightValueArray.Count).ToList());
+                            }
+                        }
+
+                        return ExecutionModel.FromObject(leftValueArray);
+                    case TokenType.Divide:
+                        return ExecutionModel.FromObject(leftValueArray.CountOccurrences(rightValueArray));
+                    case TokenType.Multiply:
+                        var areAllRightArrayElementsAnInt = rightValueArray.All(x => x is int);
+                        if (areAllRightArrayElementsAnInt == false)
+                        {
+                            throw new Exception("Right array must consist of int only");
+                        }
+                        return ExecutionModel.FromObject(leftValueArray.MultiplyLists(rightValueArray.Cast<int>().ToList()));
+                    case TokenType.LessThan:
+                        return leftValueArray.Count < rightValueArray.Count ? 1 : 0;
+                    case TokenType.GreaterThan:
+                        return leftValueArray.Count > rightValueArray.Count ? 1 : 0;
+                    case TokenType.Equal:
+                        return Enumerable.SequenceEqual(leftValueArray, rightValueArray) ? 1 : 0;
+                    case TokenType.NotEqual:
+                        return Enumerable.SequenceEqual(leftValueArray, rightValueArray) ? 0 : 1;
                     default:
                         throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
                 }
@@ -462,6 +567,10 @@ public class Interpreter
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToArray))
                 {
                     return ExecutionModel.FromObject(stringValue.ToList());
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Length))
+                {
+                    return ExecutionModel.FromObject(stringValue.Length);
                 }
             }
 

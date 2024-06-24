@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using GNScript.Helpers;
+using System.Collections;
 
 namespace GNScript.Models;
 public class ExecutionModel
@@ -93,7 +94,7 @@ public class ExecutionModel
             throw new Exception("Expected value");
         }
 
-        return (model.Value as IList).Cast<object>().ToList();
+        return (model.Value as IList).Cast<object>().ToList().DeepCopy();
     }
 
     private static bool IsListType(object? o)
