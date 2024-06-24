@@ -581,7 +581,7 @@ public class Interpreter
                     var structName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName);
+                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
                     var instanceFields = @struct.Keys.ToList();
                     var definitionFields = _structDefinitions[structName].Fields.ConvertAll(field => field.Name);
 
@@ -596,7 +596,7 @@ public class Interpreter
                     var fieldName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName);
+                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
                     var instanceFields = @struct.Keys.ToList();
 
                     return instanceFields.Contains(fieldName) ? 1 : 0;
@@ -629,12 +629,12 @@ public class Interpreter
         }
         else if (node is StructFieldAccessNode structFieldAccessNode)
         {
-            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAccessNode.InstanceName);
+            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAccessNode.InstanceName, _scopeLevel);
             return ExecutionModel.FromObject(instance[structFieldAccessNode.FieldName]);
         }
         else if (node is StructFieldAssignmentNode structFieldAssignmentNode)
         {
-            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAssignmentNode.InstanceName);
+            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAssignmentNode.InstanceName, _scopeLevel);
             instance[structFieldAssignmentNode.FieldName] = Visit(structFieldAssignmentNode.Value).Value;
             return ExecutionModel.Empty;
         }

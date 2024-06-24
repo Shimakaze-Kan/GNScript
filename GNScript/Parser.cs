@@ -301,7 +301,7 @@ public class Parser
 
     private AstNode ParseComparison()
     {
-        var comparsionOperators = new[] { TokenType.GreaterThan, TokenType.LessThan, TokenType.Equal, TokenType.NotEqual, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual };
+        var comparsionOperators = new[] { TokenType.GreaterThan, TokenType.LessThan, TokenType.Equal, TokenType.NotEqual, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual, TokenType.AndOperator, TokenType.OrOperator };
         var left = ParseTerm();
 
         while (_position < _tokens.Count && comparsionOperators.Contains(_tokens[_position].Type))
@@ -320,7 +320,7 @@ public class Parser
         var left = ParseFactor();
 
         while (_position < _tokens.Count &&
-               (_tokens[_position].Type == TokenType.Plus || _tokens[_position].Type == TokenType.Minus || _tokens[_position].Type == TokenType.AndOperator || _tokens[_position].Type == TokenType.OrOperator))
+               (_tokens[_position].Type == TokenType.Plus || _tokens[_position].Type == TokenType.Minus))
         {
             var operatorToken = _tokens[_position];
             _position++;
