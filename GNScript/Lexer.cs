@@ -227,6 +227,8 @@ public class Lexer
                 return new Token(TokenType.RefBox, value);
             case "create":
                 return new Token(TokenType.Create, value);
+            case "throw":
+                return new Token(TokenType.Throw, value);
             case "wuwei":
             case "void":
                 return new Token(TokenType.Void, "void");

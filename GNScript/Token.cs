@@ -42,6 +42,7 @@ public enum TokenType
     Dot,
     RefBox,
     Create,
+    Throw,
     EOF
 }
 

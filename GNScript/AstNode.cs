@@ -292,3 +292,13 @@ public class RefBoxFieldAssignmentNode : AstNode
         Value = value;
     }
 }
+
+public class ThrowNode : AstNode
+{
+    public AstNode Message { get; }
+
+    public ThrowNode(AstNode message)
+    {
+        Message = message;
+    }
+}

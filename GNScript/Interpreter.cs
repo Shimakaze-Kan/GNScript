@@ -1,5 +1,5 @@
 ﻿using System.Text;
-
+using GNScript.Exceptions;
 using GNScript.Helpers;
 using GNScript.Models;
 
@@ -637,6 +637,11 @@ public class Interpreter
             var instance = (Dictionary<string, object>)_variables.GetVariable(refBoxFieldAssignmentNode.InstanceName, _scopeLevel);
             instance[refBoxFieldAssignmentNode.FieldName] = Visit(refBoxFieldAssignmentNode.Value).Value;
             return ExecutionModel.Empty;
+        }
+        else if (node is ThrowNode throwNode)
+        {
+            var message = (string)Visit(throwNode.Message);
+            throw new UserDefinedException(message);
         }
 
         throw new Exception("AST node error");
