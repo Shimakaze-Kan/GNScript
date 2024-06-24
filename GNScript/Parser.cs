@@ -77,7 +77,7 @@ public class Parser
                 }
                 else if (_tokens[_position].Type == TokenType.Create)
                 {
-                    return ParseStructInstance(instanceName: variableName);
+                    return ParseRefBoxInstance(instanceName: variableName);
                 }
 
                 var expression = ParseExpression();
@@ -89,7 +89,7 @@ public class Parser
             }
             if (_tokens[_position + 1].Type == TokenType.Dot)
             {
-                return ParseStructFieldAssigment();
+                return ParseRefBoxFieldAssigment();
             }
         }
         else if (_tokens[_position].Type == TokenType.If)
@@ -125,9 +125,9 @@ public class Parser
             var body = ParseBody();
             return new ForNode(init, condition, increment, body);
         }
-        else if (_tokens[_position].Type == TokenType.Struct)
+        else if (_tokens[_position].Type == TokenType.RefBox)
         {
-            return ParseStructDeclaration();
+            return ParseRefBoxDeclaration();
         }
 
         return ParseExpression();
@@ -391,14 +391,14 @@ public class Parser
                 }
                 else if (_tokens[_position + 1].Type == TokenType.Dot)
                 {
-                    var structFieldAccess = ParseStructFieldAccess();
+                    var refBoxFieldAccess = ParseRefBoxFieldAccess();
 
-                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after struc field access
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after RefBox field access
                     {
-                        return ParsePropertyAccess(structFieldAccess);
+                        return ParsePropertyAccess(refBoxFieldAccess);
                     }
 
-                    return structFieldAccess;
+                    return refBoxFieldAccess;
                 }
                 else
                 {
@@ -432,7 +432,7 @@ public class Parser
         }
     }
 
-    private AstNode ParseStructFieldAssigment()
+    private AstNode ParseRefBoxFieldAssigment()
     {
         var instanceName = _tokens[_position].Value;
         _position++; // identifier
@@ -458,10 +458,10 @@ public class Parser
 
         var value = ParseExpression();
 
-        return new StructFieldAssignmentNode(instanceName, fieldName, value);
+        return new RefBoxFieldAssignmentNode(instanceName, fieldName, value);
     }
 
-    private AstNode ParseStructFieldAccess()
+    private AstNode ParseRefBoxFieldAccess()
     {
         var instanceName = _tokens[_position].Value;
         _position += 2; // identifier and .
@@ -474,7 +474,7 @@ public class Parser
         var fieldName = _tokens[_position].Value;
         _position++; // field name
 
-        return new StructFieldAccessNode(instanceName, fieldName);
+        return new RefBoxFieldAccessNode(instanceName, fieldName);
     }
 
     private AstNode ParseInput()
@@ -571,22 +571,22 @@ public class Parser
         return propertyNode;
     }
 
-    private AstNode ParseStructDeclaration()
+    private AstNode ParseRefBoxDeclaration()
     {
-        if (_tokens[_position].Type != TokenType.Struct)
+        if (_tokens[_position].Type != TokenType.RefBox)
         {
-            throw new Exception("Expected struct declaration");
+            throw new Exception("Expected ref box declaration");
         }
 
-        _position++; // struct
+        _position++; // RefBox
 
         if (_tokens[_position].Type != TokenType.Identifier)
         {
-            throw new Exception("Expected struct name");
+            throw new Exception("Expected ref box name");
         }
 
-        var structName = _tokens[_position].Value;
-        _position++; // struct name
+        var refBoxName = _tokens[_position].Value;
+        _position++; // RefBox name
 
         var fields = new List<VariableDeclarationNode>();
         while (_tokens[_position].Type != TokenType.EndBlock)
@@ -613,10 +613,10 @@ public class Parser
 
         _position++; // end
 
-        return new StructNode(structName, fields);
+        return new RefBoxNode(refBoxName, fields);
     }
 
-    private AstNode ParseStructInstance(string instanceName)
+    private AstNode ParseRefBoxInstance(string instanceName)
     {
         if (_tokens[_position].Type != TokenType.Create)
         {
@@ -626,13 +626,13 @@ public class Parser
 
         if (_tokens[_position].Type != TokenType.Identifier)
         {
-            throw new Exception("Expected struct name");
+            throw new Exception("Expected ref box name");
         }
 
-        var structName = _tokens[_position].Value;
-        _position++; // struct name
+        var refBoxName = _tokens[_position].Value;
+        _position++; // RefBox name
 
-        return new StructInstanceNode(structName, instanceName);
+        return new RefBoxInstanceNode(refBoxName, instanceName);
     }
 
     private List<AstNode> TryParsePropertyArguments()

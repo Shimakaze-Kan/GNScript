@@ -24,7 +24,7 @@ public class ExecutionModel
         }
         else if (IsDictionaryType(value))
         {
-            ModelType = ExecutionModelValueType.Struct;
+            ModelType = ExecutionModelValueType.RefBox;
         }
         else if (value is int)
         {
@@ -57,9 +57,9 @@ public class ExecutionModel
         return ModelType == ExecutionModelValueType.Array;
     }
     
-    public bool IsStruct()
+    public bool IsRefBox()
     {
-        return ModelType == ExecutionModelValueType.Struct;
+        return ModelType == ExecutionModelValueType.RefBox;
     }
 
     public static ExecutionModel FromObject(object value)
@@ -135,7 +135,7 @@ public class ExecutionModel
         if (model.IsArray())
             return ConvertListToString((IList)value);
 
-        if (model.IsStruct())
+        if (model.IsRefBox())
             return ConvertDictionaryToString((IDictionary)value);
 
         if (model.IsString())
@@ -201,5 +201,5 @@ public enum ExecutionModelValueType
     Int,
     String,
     Array,
-    Struct
+    RefBox
 }

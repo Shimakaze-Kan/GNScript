@@ -26,7 +26,7 @@ public enum StringProperty
     Length
 }
 
-public enum StructProperty
+public enum BoxProperty
 {
     IsInstanceOf,
     HasField

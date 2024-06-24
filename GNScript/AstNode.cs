@@ -231,12 +231,12 @@ public class PropertyAccessNode : AstNode
     }
 }
 
-public class StructNode : AstNode
+public class RefBoxNode : AstNode
 {
     public string Name { get; }
     public List<VariableDeclarationNode> Fields { get; }
 
-    public StructNode(string name, List<VariableDeclarationNode> fields)
+    public RefBoxNode(string name, List<VariableDeclarationNode> fields)
     {
         Name = name;
         Fields = fields;
@@ -255,37 +255,37 @@ public class VariableDeclarationNode : AstNode
     }
 }
 
-public class StructInstanceNode : AstNode
+public class RefBoxInstanceNode : AstNode
 {
-    public string StructName { get; }
+    public string RefBoxName { get; }
     public string InstanceName { get; }
 
-    public StructInstanceNode(string structName, string instanceName)
+    public RefBoxInstanceNode(string refBoxName, string instanceName)
     {
-        StructName = structName;
+        RefBoxName = refBoxName;
         InstanceName = instanceName;
     }
 }
 
-public class StructFieldAccessNode : AstNode
+public class RefBoxFieldAccessNode : AstNode
 {
     public string InstanceName { get; }
     public string FieldName { get; }
 
-    public StructFieldAccessNode(string instanceName, string fieldName)
+    public RefBoxFieldAccessNode(string instanceName, string fieldName)
     {
         InstanceName = instanceName;
         FieldName = fieldName;
     }
 }
 
-public class StructFieldAssignmentNode : AstNode
+public class RefBoxFieldAssignmentNode : AstNode
 {
     public string InstanceName { get; }
     public string FieldName { get; }
     public AstNode Value { get; }
 
-    public StructFieldAssignmentNode(string instanceName, string fieldName, AstNode value)
+    public RefBoxFieldAssignmentNode(string instanceName, string fieldName, AstNode value)
     {
         InstanceName = instanceName;
         FieldName = fieldName;

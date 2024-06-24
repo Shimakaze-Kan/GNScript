@@ -40,7 +40,7 @@ public enum TokenType
     AndOperator,
     OrOperator,
     Dot,
-    Struct,
+    RefBox,
     Create,
     EOF
 }

@@ -223,8 +223,8 @@ public class Lexer
                 return new Token(TokenType.EndBlock, value);
             case "input":
                 return new Token(TokenType.Input, value);
-            case "struct":
-                return new Token(TokenType.Struct, value);
+            case "refbox":
+                return new Token(TokenType.RefBox, value);
             case "create":
                 return new Token(TokenType.Create, value);
             case "wuwei":

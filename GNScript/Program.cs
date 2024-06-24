@@ -79,7 +79,8 @@ internal class Program
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Błąd: " + ex.Message);
+                Interpreter.ResetScopesAboveRoot();
+                Console.WriteLine("Error: " + ex.Message);
             }
         }
     }

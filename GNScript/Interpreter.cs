@@ -8,7 +8,7 @@ public class Interpreter
 {
     private readonly VariableCollection _variables = new();
     private readonly Dictionary<string, FunctionNode> _functions = [];
-    private readonly Dictionary<string, StructNode> _structDefinitions = [];
+    private readonly Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
     private readonly Stack<CallReturnValue> _callReturnValue = [];
     private int _scopeLevel = 0;
     private bool _isForLoopParameterSection = false;
@@ -570,25 +570,25 @@ public class Interpreter
                 }
             }
 
-            var structProperties = EnumHelpers.GetEnumNamesLowercase<StructProperty>();
-            if (nodeModel.IsStruct() && structProperties.Contains(propertyNode.PropertyName))
+            var refBoxProperties = EnumHelpers.GetEnumNamesLowercase<BoxProperty>();
+            if (nodeModel.IsRefBox() && refBoxProperties.Contains(propertyNode.PropertyName))
             {
-                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StructProperty.IsInstanceOf))
+                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.IsInstanceOf))
                 {
                     ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
                     var valueModel = Visit(propertyNode.Arguments[0]);
-                    ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected struct name");
-                    var structName = (string)valueModel;
+                    ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected ref box name");
+                    var refBoxName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
-                    var instanceFields = @struct.Keys.ToList();
-                    var definitionFields = _structDefinitions[structName].Fields.ConvertAll(field => field.Name);
+                    var refBox = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
+                    var instanceFields = refBox.Keys.ToList();
+                    var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Name);
 
                     var sameFields = Enumerable.SequenceEqual(definitionFields.Order(), instanceFields.Order());
                     return sameFields ? 1 : 0;
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StructProperty.HasField))
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.HasField))
                 {
                     ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
                     var valueModel = Visit(propertyNode.Arguments[0]);
@@ -596,8 +596,8 @@ public class Interpreter
                     var fieldName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var @struct = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
-                    var instanceFields = @struct.Keys.ToList();
+                    var refBox = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
+                    var instanceFields = refBox.Keys.ToList();
 
                     return instanceFields.Contains(fieldName) ? 1 : 0;
                 }
@@ -605,37 +605,37 @@ public class Interpreter
 
             throw new Exception($"Property '{propertyNode.PropertyName}' not found");
         }
-        else if (node is StructNode structNode)
+        else if (node is RefBoxNode refBoxNode)
         {
-            var fieldNames = structNode.Fields.ConvertAll(f => f.Name);
-            ExceptionsHelper.FailIfTrue(fieldNames.Distinct().Count() != fieldNames.Count, "Redeclaration of structure field");
+            var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Name);
+            ExceptionsHelper.FailIfTrue(fieldNames.Distinct().Count() != fieldNames.Count, "Redeclaration of ref box field");
 
-            _structDefinitions[structNode.Name] = structNode;
+            _refBoxDefinitions[refBoxNode.Name] = refBoxNode;
             return ExecutionModel.Empty;
         }
-        else if (node is StructInstanceNode structInstanceNode)
+        else if (node is RefBoxInstanceNode refBoxInstanceNode)
         {
-            var structDefinition = _structDefinitions[structInstanceNode.StructName];
+            var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
             var instance = new Dictionary<string, object>();
 
-            foreach (var field in structDefinition.Fields)
+            foreach (var field in refBoxDefinition.Fields)
             {
                 instance[field.Name] = Visit(field.InitialValue).Value;
             }
 
-            _variables.SetVariable(structInstanceNode.InstanceName, instance);
+            _variables.SetVariable(refBoxInstanceNode.InstanceName, instance);
 
             return ExecutionModel.Empty;
         }
-        else if (node is StructFieldAccessNode structFieldAccessNode)
+        else if (node is RefBoxFieldAccessNode refBoxFieldAccessNode)
         {
-            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAccessNode.InstanceName, _scopeLevel);
-            return ExecutionModel.FromObject(instance[structFieldAccessNode.FieldName]);
+            var instance = (Dictionary<string, object>)_variables.GetVariable(refBoxFieldAccessNode.InstanceName, _scopeLevel);
+            return ExecutionModel.FromObject(instance[refBoxFieldAccessNode.FieldName]);
         }
-        else if (node is StructFieldAssignmentNode structFieldAssignmentNode)
+        else if (node is RefBoxFieldAssignmentNode refBoxFieldAssignmentNode)
         {
-            var instance = (Dictionary<string, object>)_variables.GetVariable(structFieldAssignmentNode.InstanceName, _scopeLevel);
-            instance[structFieldAssignmentNode.FieldName] = Visit(structFieldAssignmentNode.Value).Value;
+            var instance = (Dictionary<string, object>)_variables.GetVariable(refBoxFieldAssignmentNode.InstanceName, _scopeLevel);
+            instance[refBoxFieldAssignmentNode.FieldName] = Visit(refBoxFieldAssignmentNode.Value).Value;
             return ExecutionModel.Empty;
         }
 
@@ -661,19 +661,27 @@ public class Interpreter
         }
 
         if (_functions.Count == 0)
-            sb.AppendLine("  No functions to display.\n");
+            sb.AppendLine("  No functions to display.");
 
-        sb.AppendLine("[Structs]");
-        foreach (var (name, @struct) in _structDefinitions)
+        sb.AppendLine();
+
+        sb.AppendLine("[RefBoxes]");
+        foreach (var (name, refBox) in _refBoxDefinitions)
         {
-            var fieldNames = @struct.Fields.ConvertAll(f => f.Name);
+            var fieldNames = refBox.Fields.ConvertAll(f => f.Name);
             sb.AppendLine($"  {name} : {{{string.Join(", ", fieldNames)}}}");
         }
 
-        if (_structDefinitions.Count == 0)
-            sb.AppendLine("  No structs to display.");
+        if (_refBoxDefinitions.Count == 0)
+            sb.AppendLine("  No ref boxes to display.");
 
         Console.WriteLine(sb);
+    }
+
+    public void ResetScopesAboveRoot()
+    {
+        _scopeLevel = 0;
+        _variables.ClearScope(1);
     }
 
     private void DeclareFunctionParameters(FunctionCallNode functionCallNode, FunctionNode function)
