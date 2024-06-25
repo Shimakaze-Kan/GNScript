@@ -397,14 +397,25 @@ public class Parser
                 }
                 else if (_tokens[_position + 1].Type == TokenType.Dot)
                 {
-                    var refBoxFieldAccess = ParseRefBoxFieldAccess();
+                    AstNode node;
 
-                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after RefBox field access
+                    if (_position + 3 < _tokens.Count && _tokens[_position + 3].Type == TokenType.LeftParen)
                     {
-                        return ParsePropertyAccess(refBoxFieldAccess);
+                        var functionCall = ParseRefBoxFunctionCall();
+                        node = functionCall;
+                    }
+                    else
+                    {
+                        var refBoxFieldAccess = ParseRefBoxFieldAccess();
+                        node = refBoxFieldAccess;
                     }
 
-                    return refBoxFieldAccess;
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after RefBox field/function access
+                    {
+                        return ParsePropertyAccess(node);
+                    }
+
+                    return node;
                 }
                 else
                 {
@@ -481,6 +492,21 @@ public class Parser
         _position++; // field name
 
         return new RefBoxFieldAccessNode(instanceName, fieldName);
+    }
+
+    private AstNode ParseRefBoxFunctionCall()
+    {
+        var instanceName = _tokens[_position].Value;
+        _position += 2; // identifier and .
+
+        if (_tokens[_position].Type != TokenType.Identifier)
+        {
+            throw new Exception("Expected field name");
+        }
+
+        var functioncall = ParseFunctionCall() as FunctionCallNode;
+
+        return new RefBoxFunctionCallNode(instanceName, functioncall);
     }
 
     private AstNode ParseInput()
@@ -594,16 +620,27 @@ public class Parser
         var refBoxName = _tokens[_position].Value;
         _position++; // RefBox name
 
+        var functions = new List<RefBoxAccessModifier<FunctionNode>>();
         var fields = new List<RefBoxAccessModifier<VariableDeclarationNode>>();
         while (_tokens[_position].Type != TokenType.EndBlock)
         {
-            var accessModifier = Enum.GetName<AccessModifier>(AccessModifier.Public);
+            var accessModifier = Enum.GetName(AccessModifier.Public);
 
             if (_tokens[_position].Type == TokenType.Private || _tokens[_position].Type == TokenType.Public)
             {
                 accessModifier = Enum.GetName(_tokens[_position].Type);
                 _position++;
             }
+
+            Enum.TryParse<AccessModifier>(accessModifier, true, out var modifier); // public is default
+
+            if (_tokens[_position].Type == TokenType.Function)
+            {
+                var function = ParseFunctionDefinition() as FunctionNode;
+                functions.Add(new(function, modifier));
+                continue;
+            }
+            // else parse field
 
             if (_tokens[_position].Type != TokenType.Identifier)
             {
@@ -621,16 +658,14 @@ public class Parser
 
             _position++; // :
 
-            var initialValue = ParseExpression();
-
-            Enum.TryParse<AccessModifier>(accessModifier, true, out var modifier); // public is default
+            var initialValue = ParseExpression();            
 
             fields.Add(new(new VariableDeclarationNode(fieldName, initialValue), modifier));
         }
 
         _position++; // end
 
-        return new RefBoxNode(refBoxName, fields, new());
+        return new RefBoxNode(refBoxName, fields, functions);
     }
 
     private AstNode ParseRefBoxInstance(string instanceName)

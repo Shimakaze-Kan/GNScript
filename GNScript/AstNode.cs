@@ -296,12 +296,12 @@ public class RefBoxFieldAccessNode : AstNode
 public class RefBoxFunctionCallNode : AstNode
 {
     public string InstanceName { get; }
-    public string FunctionName { get; }
+    public FunctionCallNode FunctionCallNode { get; }
 
-    public RefBoxFunctionCallNode(string instanceName, string functionName)
+    public RefBoxFunctionCallNode(string instanceName, FunctionCallNode functionCallNode)
     {
         InstanceName = instanceName;
-        FunctionName = functionName;
+        FunctionCallNode = functionCallNode;
     }
 }
 

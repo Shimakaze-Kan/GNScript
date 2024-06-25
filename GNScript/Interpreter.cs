@@ -6,10 +6,10 @@ using GNScript.Models;
 namespace GNScript;
 public class Interpreter
 {
-    private readonly VariableCollection _variables = new();
+    private VariableCollection _variables = new();
     private readonly Dictionary<string, FunctionNode> _functions = [];
     private readonly Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
-    private readonly Stack<CallReturnValue> _callReturnValue = [];
+    private Stack<CallReturnValue> _callReturnValue = [];
     private int _scopeLevel = 0;
     private bool _isForLoopParameterSection = false;
 
@@ -618,9 +618,23 @@ public class Interpreter
             var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
             var instance = new Dictionary<string, RefBoxElement>();
 
+            var fieldNames = refBoxDefinition.Fields.ConvertAll(f => f.Element.Name);
+            ExceptionsHelper.FailIfFalse(fieldNames.Count == fieldNames.Distinct().Count(), "Field name duplication");
+
+            var funcNames = refBoxDefinition.Functions.ConvertAll(f => f.Element.Name);
+            ExceptionsHelper.FailIfFalse(funcNames.Count == funcNames.Distinct().Count(), "Func name duplication");
+
+            var fieldFuncNamesIntersect = fieldNames.Intersect(funcNames);
+            ExceptionsHelper.FailIfFalse(fieldFuncNamesIntersect.Count() == 0, "Function and field cannot have the same name");
+
             foreach (var field in refBoxDefinition.Fields)
             {
                 instance[field.Element.Name] = RefBoxElement.CreateFieldElement(Visit(field.Element.InitialValue).Value, field.Modifier);
+            }
+
+            foreach (var func in refBoxDefinition.Functions)
+            {
+                instance[func.Element.Name] = RefBoxElement.CreateFunctionElement(func.Element, func.Modifier);
             }
 
             _variables.SetVariable(refBoxInstanceNode.InstanceName, instance);
@@ -656,6 +670,67 @@ public class Interpreter
             var message = (string)Visit(throwNode.Message);
             throw new UserDefinedException(message);
         }
+        else if (node is RefBoxFunctionCallNode refBoxFunctionCallNode)
+        {
+            var instance = (Dictionary<string, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel);
+            var foundFunction = instance.TryGetValue(refBoxFunctionCallNode.FunctionCallNode.Name, out var element);
+
+            if (foundFunction == false)
+            {
+                throw new Exception($"Invalid function name: '{refBoxFunctionCallNode.FunctionCallNode.Name}'");
+            }
+
+            var modifier = element.Modifier;
+
+            if (modifier == AccessModifier.Private)
+            {
+                throw new Exception("Cannot call private function");
+            }
+
+            var globalScopeLevel = _scopeLevel;
+            element.ScopeLevel = globalScopeLevel;
+
+            var callScopeLevel = element.ScopeLevel;
+            element.ScopeLevel++;
+
+            var globalVariables = _variables;
+            _variables = element.Variables;
+
+            var globalCallStack = _callReturnValue;
+            _callReturnValue = element.CallReturnValue;
+
+            DeclareFunctionParameters(refBoxFunctionCallNode.FunctionCallNode, element.Function);
+
+            var body = element.Function.Body;
+
+            object? returnValue = null;
+            while (body != null)
+            {
+                Visit(body);
+                body = body.Next;
+
+                if (_callReturnValue.Any())
+                {
+                    _variables.ClearScope(callScopeLevel + 1);
+                    _scopeLevel = callScopeLevel;
+                    var callReturnValue = _callReturnValue.Pop();
+
+                    if (callReturnValue.IsVoid)
+                    {
+                        return ExecutionModel.Empty;
+                    }
+
+                    returnValue = callReturnValue.ReturnValue;
+                    break;
+                }
+            }
+
+            _variables = globalVariables; // restore global variables
+            _callReturnValue = globalCallStack; // restore global call stack
+            _scopeLevel = globalScopeLevel; // restore scope level
+
+            return ExecutionModel.FromObject(returnValue);
+        }
 
         throw new Exception("AST node error");
     }
@@ -687,7 +762,8 @@ public class Interpreter
         foreach (var (name, refBox) in _refBoxDefinitions)
         {
             var fields = refBox.Fields.ConvertAll(f => $"[{f.Modifier}] {f.Element.Name}");
-            sb.AppendLine($"  {name} : {{{string.Join(", ", fields)}}}");
+            var functions = refBox.Functions.ConvertAll(f => $"[{f.Modifier}] {f.Element.Name} <- ({string.Join(", ", f.Element.Parameters)})");
+            sb.AppendLine($"  {name} : {{{string.Join(", ", fields.Concat(functions))}}}");
         }
 
         if (_refBoxDefinitions.Count == 0)
