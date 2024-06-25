@@ -690,45 +690,73 @@ public class Interpreter
             var globalScopeLevel = _scopeLevel;
             element.ScopeLevel = globalScopeLevel;
 
-            var callScopeLevel = element.ScopeLevel;
-            element.ScopeLevel++;
-
             var globalVariables = _variables;
             _variables = element.Variables;
+
+            foreach (var (name, model) in instance)
+            {
+                if (model.Type == RefBoxElementType.Field)
+                {
+                    _variables.SetVariable(name, model.Value);
+                }
+            }
+
+            var callScopeLevel = element.ScopeLevel;
+            element.ScopeLevel++;
 
             var globalCallStack = _callReturnValue;
             _callReturnValue = element.CallReturnValue;
 
             DeclareFunctionParameters(refBoxFunctionCallNode.FunctionCallNode, element.Function);
 
-            var body = element.Function.Body;
-
             object? returnValue = null;
-            while (body != null)
+            var returnEmpty = false;
+            try
             {
-                Visit(body);
-                body = body.Next;
-
-                if (_callReturnValue.Any())
+                var body = element.Function.Body;
+                
+                while (body != null)
                 {
-                    _variables.ClearScope(callScopeLevel + 1);
-                    _scopeLevel = callScopeLevel;
-                    var callReturnValue = _callReturnValue.Pop();
+                    Visit(body);
+                    body = body.Next;
 
-                    if (callReturnValue.IsVoid)
+                    if (_callReturnValue.Any())
                     {
-                        return ExecutionModel.Empty;
-                    }
+                        _variables.ClearScope(callScopeLevel + 1);
+                        _scopeLevel = callScopeLevel;
+                        var callReturnValue = _callReturnValue.Pop();
 
-                    returnValue = callReturnValue.ReturnValue;
-                    break;
+                        if (callReturnValue.IsVoid)
+                        {
+                            returnEmpty = true;
+                        }
+
+                        returnValue = callReturnValue.ReturnValue;
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                _variables = globalVariables; // restore global variables
+                _callReturnValue = globalCallStack; // restore global call stack
+                _scopeLevel = globalScopeLevel; // restore scope level
+
+                var refBoxFieldKeys = instance.Where(keyValue => keyValue.Value.Type == RefBoxElementType.Field).Select(x => x.Key);
+                foreach (var (name, value) in element.Variables.GetVariables(0))
+                {
+                    if (refBoxFieldKeys.Contains(name))
+                    {
+                        var fieldModifier = instance[name].Modifier;
+                        instance[name] = RefBoxElement.CreateFieldElement(value, fieldModifier);
+                    }
                 }
             }
 
-            _variables = globalVariables; // restore global variables
-            _callReturnValue = globalCallStack; // restore global call stack
-            _scopeLevel = globalScopeLevel; // restore scope level
-
+            if (returnEmpty)
+            {
+                return ExecutionModel.Empty;
+            }
             return ExecutionModel.FromObject(returnValue);
         }
 

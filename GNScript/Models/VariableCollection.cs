@@ -50,6 +50,16 @@ public class VariableCollection
         throw new Exception($"Variable '{name}' not found");
     }
 
+    public Dictionary<string, object> GetVariables(int scopeLevel)
+    {
+        if (_variables.TryGetValue(new(scopeLevel), out var scope))
+        {
+            return scope;
+        }
+
+        return new();
+    }
+
     public void ClearScope(int scopeLevel)
     {
         if (scopeLevel == 0)

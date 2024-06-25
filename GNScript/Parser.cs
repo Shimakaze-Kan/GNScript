@@ -1,4 +1,6 @@
-﻿namespace GNScript;
+﻿using System.Xml.Linq;
+
+namespace GNScript;
 public class Parser
 {
     private readonly List<Token> _tokens;
@@ -95,7 +97,14 @@ public class Parser
             }
             if (_tokens[_position + 1].Type == TokenType.Dot)
             {
-                return ParseRefBoxFieldAssigment();
+                if (_position + 3 < _tokens.Count && _tokens[_position + 3].Type == TokenType.LeftParen)
+                {
+                    return ParseRefBoxFunctionCall();
+                }
+                else
+                {
+                    return ParseRefBoxFieldAssigment();
+                }
             }
         }
         else if (_tokens[_position].Type == TokenType.If)

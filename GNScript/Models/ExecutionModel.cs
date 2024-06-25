@@ -18,7 +18,11 @@ public class ExecutionModel
             return;
         }
 
-        if (IsListType(value))
+        if (value == null)
+        {
+            ModelType = ExecutionModelValueType.Void;
+        }
+        else if (IsListType(value))
         {
             ModelType = ExecutionModelValueType.Array;
         }
@@ -183,7 +187,16 @@ public class ExecutionModel
 
         foreach (DictionaryEntry kvp in dictionary)
         {
-            sb.AppendFormat("{0}: {1}, ", kvp.Key, ConvertToString(((RefBoxElement)kvp.Value).Value));
+            var model = (RefBoxElement)kvp.Value;
+            if (model.Type == RefBoxElementType.Function)
+            {
+                var arguments = model.Function.Parameters;
+                sb.AppendFormat("{0} <- ({1}), ", kvp.Key, string.Join(", ", arguments));
+            }
+            else
+            {
+                sb.AppendFormat("{0}: {1}, ", kvp.Key, ConvertToString(model.Value));
+            }
         }
 
         if (dictionary.Count > 0)
@@ -201,5 +214,6 @@ public enum ExecutionModelValueType
     Int,
     String,
     Array,
-    RefBox
+    RefBox,
+    Void
 }
