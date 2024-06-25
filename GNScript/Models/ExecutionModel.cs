@@ -107,14 +107,14 @@ public class ExecutionModel
         return (model.Value as IList).Cast<object>().ToList().DeepCopy();
     }
     
-    public static explicit operator Dictionary<string, object>(ExecutionModel model)
+    public static explicit operator Dictionary<string, RefBoxElement>(ExecutionModel model)
     {
         if (model.IsEmptyValue)
         {
             throw new Exception("Expected value");
         }
 
-        return model.Value as Dictionary<string, object>;
+        return model.Value as Dictionary<string, RefBoxElement>;
     }
 
     public string ToPrintable()
@@ -183,7 +183,7 @@ public class ExecutionModel
 
         foreach (DictionaryEntry kvp in dictionary)
         {
-            sb.AppendFormat("{0}: {1}, ", kvp.Key, ConvertToString(kvp.Value));
+            sb.AppendFormat("{0}: {1}, ", kvp.Key, ConvertToString(((RefBoxElement)kvp.Value).Value));
         }
 
         if (dictionary.Count > 0)

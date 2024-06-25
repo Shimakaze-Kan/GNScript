@@ -594,9 +594,17 @@ public class Parser
         var refBoxName = _tokens[_position].Value;
         _position++; // RefBox name
 
-        var fields = new List<VariableDeclarationNode>();
+        var fields = new List<RefBoxAccessModifier<VariableDeclarationNode>>();
         while (_tokens[_position].Type != TokenType.EndBlock)
         {
+            var accessModifier = Enum.GetName<AccessModifier>(AccessModifier.Public);
+
+            if (_tokens[_position].Type == TokenType.Private || _tokens[_position].Type == TokenType.Public)
+            {
+                accessModifier = Enum.GetName(_tokens[_position].Type);
+                _position++;
+            }
+
             if (_tokens[_position].Type != TokenType.Identifier)
             {
                 throw new Exception("Expected field name");
@@ -614,12 +622,15 @@ public class Parser
             _position++; // :
 
             var initialValue = ParseExpression();
-            fields.Add(new VariableDeclarationNode(fieldName, initialValue));
+
+            Enum.TryParse<AccessModifier>(accessModifier, true, out var modifier); // public is default
+
+            fields.Add(new(new VariableDeclarationNode(fieldName, initialValue), modifier));
         }
 
         _position++; // end
 
-        return new RefBoxNode(refBoxName, fields);
+        return new RefBoxNode(refBoxName, fields, new());
     }
 
     private AstNode ParseRefBoxInstance(string instanceName)

@@ -581,9 +581,9 @@ public class Interpreter
                     var refBoxName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var refBox = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
+                    var refBox = (Dictionary<string, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
                     var instanceFields = refBox.Keys.ToList();
-                    var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Name);
+                    var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Element.Name);
 
                     var sameFields = Enumerable.SequenceEqual(definitionFields.Order(), instanceFields.Order());
                     return sameFields ? 1 : 0;
@@ -596,7 +596,7 @@ public class Interpreter
                     var fieldName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var refBox = (Dictionary<string, object>)_variables.GetVariable(instanceName, _scopeLevel);
+                    var refBox = (Dictionary<string, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
                     var instanceFields = refBox.Keys.ToList();
 
                     return instanceFields.Contains(fieldName) ? 1 : 0;
@@ -607,7 +607,7 @@ public class Interpreter
         }
         else if (node is RefBoxNode refBoxNode)
         {
-            var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Name);
+            var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Element.Name);
             ExceptionsHelper.FailIfTrue(fieldNames.Distinct().Count() != fieldNames.Count, "Redeclaration of ref box field");
 
             _refBoxDefinitions[refBoxNode.Name] = refBoxNode;
@@ -616,11 +616,11 @@ public class Interpreter
         else if (node is RefBoxInstanceNode refBoxInstanceNode)
         {
             var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
-            var instance = new Dictionary<string, object>();
+            var instance = new Dictionary<string, RefBoxElement>();
 
             foreach (var field in refBoxDefinition.Fields)
             {
-                instance[field.Name] = Visit(field.InitialValue).Value;
+                instance[field.Element.Name] = RefBoxElement.CreateFieldElement(Visit(field.Element.InitialValue).Value, field.Modifier);
             }
 
             _variables.SetVariable(refBoxInstanceNode.InstanceName, instance);
@@ -629,13 +629,26 @@ public class Interpreter
         }
         else if (node is RefBoxFieldAccessNode refBoxFieldAccessNode)
         {
-            var instance = (Dictionary<string, object>)_variables.GetVariable(refBoxFieldAccessNode.InstanceName, _scopeLevel);
-            return ExecutionModel.FromObject(instance[refBoxFieldAccessNode.FieldName]);
+            var instance = (Dictionary<string, RefBoxElement>)_variables.GetVariable(refBoxFieldAccessNode.InstanceName, _scopeLevel);
+
+            if (instance[refBoxFieldAccessNode.FieldName].Modifier == AccessModifier.Private)
+            {
+                throw new Exception("Cannot access private field");
+            }
+
+            return ExecutionModel.FromObject(instance[refBoxFieldAccessNode.FieldName].Value);
         }
         else if (node is RefBoxFieldAssignmentNode refBoxFieldAssignmentNode)
         {
-            var instance = (Dictionary<string, object>)_variables.GetVariable(refBoxFieldAssignmentNode.InstanceName, _scopeLevel);
-            instance[refBoxFieldAssignmentNode.FieldName] = Visit(refBoxFieldAssignmentNode.Value).Value;
+            var instance = (Dictionary<string, RefBoxElement>)_variables.GetVariable(refBoxFieldAssignmentNode.InstanceName, _scopeLevel);
+            var modifier = instance[refBoxFieldAssignmentNode.FieldName].Modifier;
+
+            if (modifier == AccessModifier.Private)
+            {
+                throw new Exception("Cannot set value to private field");
+            }
+
+            instance[refBoxFieldAssignmentNode.FieldName] = RefBoxElement.CreateFieldElement(Visit(refBoxFieldAssignmentNode.Value).Value, modifier);
             return ExecutionModel.Empty;
         }
         else if (node is ThrowNode throwNode)
@@ -673,8 +686,8 @@ public class Interpreter
         sb.AppendLine("[RefBoxes]");
         foreach (var (name, refBox) in _refBoxDefinitions)
         {
-            var fieldNames = refBox.Fields.ConvertAll(f => f.Name);
-            sb.AppendLine($"  {name} : {{{string.Join(", ", fieldNames)}}}");
+            var fields = refBox.Fields.ConvertAll(f => $"[{f.Modifier}] {f.Element.Name}");
+            sb.AppendLine($"  {name} : {{{string.Join(", ", fields)}}}");
         }
 
         if (_refBoxDefinitions.Count == 0)

@@ -43,7 +43,19 @@ public enum TokenType
     RefBox,
     Create,
     Throw,
+
+    #region Access Modifiers
+    Private,
+    Public,
+    #endregion
+
     EOF
+}
+
+public enum AccessModifier
+{
+    Private,
+    Public
 }
 
 public class Token

@@ -234,12 +234,26 @@ public class PropertyAccessNode : AstNode
 public class RefBoxNode : AstNode
 {
     public string Name { get; }
-    public List<VariableDeclarationNode> Fields { get; }
+    public List<RefBoxAccessModifier<VariableDeclarationNode>> Fields { get; }
+    public List<RefBoxAccessModifier<FunctionNode>> Functions { get; }
 
-    public RefBoxNode(string name, List<VariableDeclarationNode> fields)
+    public RefBoxNode(string name, List<RefBoxAccessModifier<VariableDeclarationNode>> fields, List<RefBoxAccessModifier<FunctionNode>> functions)
     {
         Name = name;
         Fields = fields;
+        Functions = functions;
+    }
+}
+
+public class RefBoxAccessModifier<T> : AstNode
+{
+    public AccessModifier Modifier { get; }
+    public T Element { get; }
+
+    public RefBoxAccessModifier(T element, AccessModifier modifier)
+    {
+        Element = element;
+        Modifier = modifier;
     }
 }
 
@@ -276,6 +290,18 @@ public class RefBoxFieldAccessNode : AstNode
     {
         InstanceName = instanceName;
         FieldName = fieldName;
+    }
+}
+
+public class RefBoxFunctionCallNode : AstNode
+{
+    public string InstanceName { get; }
+    public string FunctionName { get; }
+
+    public RefBoxFunctionCallNode(string instanceName, string functionName)
+    {
+        InstanceName = instanceName;
+        FunctionName = functionName;
     }
 }
 

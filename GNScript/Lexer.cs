@@ -229,6 +229,10 @@ public class Lexer
                 return new Token(TokenType.Create, value);
             case "throw":
                 return new Token(TokenType.Throw, value);
+            case "private":
+                return new Token(TokenType.Private, value);
+            case "public":
+                return new Token(TokenType.Public, value);
             case "wuwei":
             case "void":
                 return new Token(TokenType.Void, "void");
