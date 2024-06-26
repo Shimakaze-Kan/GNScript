@@ -43,6 +43,7 @@ public enum TokenType
     RefBox,
     Create,
     Throw,
+    Abstract,
 
     #region Access Modifiers
     Private,

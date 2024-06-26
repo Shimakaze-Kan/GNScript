@@ -617,6 +617,7 @@ public class Interpreter
         {
             var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
             var instance = new Dictionary<string, RefBoxElement>();
+            ExceptionsHelper.FailIfTrue(refBoxDefinition.IsAbstract, "Cannot make instance of abstract ref box");
 
             var fieldNames = refBoxDefinition.Fields.ConvertAll(f => f.Element.Variable);
             ExceptionsHelper.FailIfFalse(fieldNames.Count == fieldNames.Distinct().Count(), "Field name duplication");

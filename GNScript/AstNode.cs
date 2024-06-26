@@ -236,12 +236,17 @@ public class RefBoxNode : AstNode
     public string Name { get; }
     public List<RefBoxAccessModifier<AssignmentNode>> Fields { get; }
     public List<RefBoxAccessModifier<FunctionNode>> Functions { get; }
+    public bool IsAbstract { get; }
 
-    public RefBoxNode(string name, List<RefBoxAccessModifier<AssignmentNode>> fields, List<RefBoxAccessModifier<FunctionNode>> functions)
+    public RefBoxNode(string name,
+        bool isAbstract,
+        List<RefBoxAccessModifier<AssignmentNode>> fields, 
+        List<RefBoxAccessModifier<FunctionNode>> functions)
     {
         Name = name;
         Fields = fields;
         Functions = functions;
+        IsAbstract = isAbstract;
     }
 }
 

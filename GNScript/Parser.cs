@@ -621,6 +621,13 @@ public class Parser
 
         _position++; // RefBox
 
+        var isAbstract = false;
+        if (_tokens[_position].Type == TokenType.Abstract)
+        {
+            isAbstract = true;
+            _position++; // abstract
+        }
+
         if (_tokens[_position].Type != TokenType.Identifier)
         {
             throw new Exception("Expected ref box name");
@@ -674,7 +681,7 @@ public class Parser
 
         _position++; // end
 
-        return new RefBoxNode(refBoxName, fields, functions);
+        return new RefBoxNode(refBoxName, isAbstract, fields, functions);
     }
 
     private AstNode ParseRefBoxInstance(string instanceName)
