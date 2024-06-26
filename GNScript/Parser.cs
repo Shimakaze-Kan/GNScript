@@ -630,7 +630,7 @@ public class Parser
         _position++; // RefBox name
 
         var functions = new List<RefBoxAccessModifier<FunctionNode>>();
-        var fields = new List<RefBoxAccessModifier<VariableDeclarationNode>>();
+        var fields = new List<RefBoxAccessModifier<AssignmentNode>>();
         while (_tokens[_position].Type != TokenType.EndBlock)
         {
             var accessModifier = Enum.GetName(AccessModifier.Public);
@@ -660,16 +660,16 @@ public class Parser
 
             _position++; // field name
 
-            if (_tokens[_position].Type != TokenType.Colon)
+            if (_tokens[_position].Type != TokenType.Assign)
             {
-                throw new Exception("Expected colon");
+                throw new Exception("Expected assign");
             }
 
-            _position++; // :
+            _position++; // =
 
-            var initialValue = ParseExpression();            
+            var initialValue = ParseExpression();
 
-            fields.Add(new(new VariableDeclarationNode(fieldName, initialValue), modifier));
+            fields.Add(new(new AssignmentNode(fieldName, initialValue), modifier));
         }
 
         _position++; // end

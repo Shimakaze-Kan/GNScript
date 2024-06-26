@@ -583,7 +583,7 @@ public class Interpreter
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
                     var refBox = (Dictionary<string, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
                     var instanceFields = refBox.Keys.ToList();
-                    var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Element.Name);
+                    var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Element.Variable);
 
                     var sameFields = Enumerable.SequenceEqual(definitionFields.Order(), instanceFields.Order());
                     return sameFields ? 1 : 0;
@@ -607,7 +607,7 @@ public class Interpreter
         }
         else if (node is RefBoxNode refBoxNode)
         {
-            var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Element.Name);
+            var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Element.Variable);
             ExceptionsHelper.FailIfTrue(fieldNames.Distinct().Count() != fieldNames.Count, "Redeclaration of ref box field");
 
             _refBoxDefinitions[refBoxNode.Name] = refBoxNode;
@@ -618,7 +618,7 @@ public class Interpreter
             var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
             var instance = new Dictionary<string, RefBoxElement>();
 
-            var fieldNames = refBoxDefinition.Fields.ConvertAll(f => f.Element.Name);
+            var fieldNames = refBoxDefinition.Fields.ConvertAll(f => f.Element.Variable);
             ExceptionsHelper.FailIfFalse(fieldNames.Count == fieldNames.Distinct().Count(), "Field name duplication");
 
             var funcNames = refBoxDefinition.Functions.ConvertAll(f => f.Element.Name);
@@ -629,7 +629,7 @@ public class Interpreter
 
             foreach (var field in refBoxDefinition.Fields)
             {
-                instance[field.Element.Name] = RefBoxElement.CreateFieldElement(Visit(field.Element.InitialValue).Value, field.Modifier);
+                instance[field.Element.Variable] = RefBoxElement.CreateFieldElement(Visit(field.Element.Expression).Value, field.Modifier);
             }
 
             foreach (var func in refBoxDefinition.Functions)
@@ -789,7 +789,7 @@ public class Interpreter
         sb.AppendLine("[RefBoxes]");
         foreach (var (name, refBox) in _refBoxDefinitions)
         {
-            var fields = refBox.Fields.ConvertAll(f => $"[{f.Modifier}] {f.Element.Name}");
+            var fields = refBox.Fields.ConvertAll(f => $"[{f.Modifier}] {f.Element.Variable}");
             var functions = refBox.Functions.ConvertAll(f => $"[{f.Modifier}] {f.Element.Name} <- ({string.Join(", ", f.Element.Parameters)})");
             sb.AppendLine($"  {name} : {{{string.Join(", ", fields.Concat(functions))}}}");
         }
