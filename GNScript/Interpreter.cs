@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Linq;
+using System.Text;
 using GNScript.Exceptions;
 using GNScript.Helpers;
 using GNScript.Models;
@@ -608,7 +609,39 @@ public class Interpreter
         else if (node is RefBoxNode refBoxNode)
         {
             var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Element.Variable);
-            ExceptionsHelper.FailIfTrue(fieldNames.Distinct().Count() != fieldNames.Count, "Redeclaration of ref box field");
+            ExceptionsHelper.FailIfFalse(fieldNames.Count == fieldNames.Distinct().Count(), "Field name duplication");
+
+            var funcNames = refBoxNode.Functions.ConvertAll(f => f.Element.Name);
+            ExceptionsHelper.FailIfFalse(funcNames.Count == funcNames.Distinct().Count(), "Func name duplication");
+
+            var fieldFuncNamesIntersect = fieldNames.Intersect(funcNames);
+            ExceptionsHelper.FailIfFalse(fieldFuncNamesIntersect.Count() == 0, "Function and field cannot have the same name");
+
+            if (string.IsNullOrEmpty(refBoxNode.BaseClassName) == false)
+            {
+                ExceptionsHelper.FailIfFalse(_refBoxDefinitions.TryGetValue(refBoxNode.BaseClassName, out var baseRefBoxDefinition),
+                    $"Base ref box '{refBoxNode.BaseClassName}' not found");
+
+                foreach (var field in baseRefBoxDefinition.Fields)
+                {
+                    if (field.Modifier == AccessModifier.Private)
+                        continue;
+                    if (refBoxNode.Fields.Any(f => f.Element.Variable == field.Element.Variable))
+                        continue;
+
+                    refBoxNode.Fields.Add(field);
+                }
+
+                foreach (var func in baseRefBoxDefinition.Functions)
+                {
+                    if (func.Modifier == AccessModifier.Private)
+                        continue;
+                    if (refBoxNode.Functions.Any(f => f.Element.Name == func.Element.Name))
+                        continue;
+
+                    refBoxNode.Functions.Add(func);
+                }
+            }
 
             _refBoxDefinitions[refBoxNode.Name] = refBoxNode;
             return ExecutionModel.Empty;
@@ -618,15 +651,6 @@ public class Interpreter
             var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
             var instance = new Dictionary<string, RefBoxElement>();
             ExceptionsHelper.FailIfTrue(refBoxDefinition.IsAbstract, "Cannot make instance of abstract ref box");
-
-            var fieldNames = refBoxDefinition.Fields.ConvertAll(f => f.Element.Variable);
-            ExceptionsHelper.FailIfFalse(fieldNames.Count == fieldNames.Distinct().Count(), "Field name duplication");
-
-            var funcNames = refBoxDefinition.Functions.ConvertAll(f => f.Element.Name);
-            ExceptionsHelper.FailIfFalse(funcNames.Count == funcNames.Distinct().Count(), "Func name duplication");
-
-            var fieldFuncNamesIntersect = fieldNames.Intersect(funcNames);
-            ExceptionsHelper.FailIfFalse(fieldFuncNamesIntersect.Count() == 0, "Function and field cannot have the same name");
 
             foreach (var field in refBoxDefinition.Fields)
             {
@@ -792,7 +816,7 @@ public class Interpreter
         {
             var fields = refBox.Fields.ConvertAll(f => $"[{f.Modifier}] {f.Element.Variable}");
             var functions = refBox.Functions.ConvertAll(f => $"[{f.Modifier}] {f.Element.Name} <- ({string.Join(", ", f.Element.Parameters)})");
-            sb.AppendLine($"  {name} : {{{string.Join(", ", fields.Concat(functions))}}}");
+            sb.AppendLine($"  {name} : {{{string.Join(", ", fields.Concat(functions))}}} {(string.IsNullOrEmpty(refBox.BaseClassName) ? "" : $"[base: {refBox.BaseClassName}]")}");
         }
 
         if (_refBoxDefinitions.Count == 0)

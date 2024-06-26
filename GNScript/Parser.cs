@@ -636,6 +636,20 @@ public class Parser
         var refBoxName = _tokens[_position].Value;
         _position++; // RefBox name
 
+        var baseClassName = string.Empty;
+        if (_tokens[_position].Type == TokenType.Colon)
+        {
+            _position++; // :
+
+            if (_tokens[_position].Type != TokenType.Identifier)
+            {
+                throw new Exception("Expected base class name");
+            }
+
+            baseClassName = _tokens[_position].Value;
+            _position++; // base class name
+        }
+
         var functions = new List<RefBoxAccessModifier<FunctionNode>>();
         var fields = new List<RefBoxAccessModifier<AssignmentNode>>();
         while (_tokens[_position].Type != TokenType.EndBlock)
@@ -681,7 +695,7 @@ public class Parser
 
         _position++; // end
 
-        return new RefBoxNode(refBoxName, isAbstract, fields, functions);
+        return new RefBoxNode(refBoxName, isAbstract, fields, functions, baseClassName);
     }
 
     private AstNode ParseRefBoxInstance(string instanceName)
