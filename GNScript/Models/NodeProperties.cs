@@ -29,5 +29,6 @@ public enum StringProperty
 public enum BoxProperty
 {
     IsInstanceOf,
-    HasField
+    HasField,
+    HasFunction
 }

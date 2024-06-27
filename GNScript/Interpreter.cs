@@ -1,14 +1,13 @@
-﻿using System.Linq;
-using System.Text;
-using GNScript.Exceptions;
+﻿using GNScript.Exceptions;
 using GNScript.Helpers;
 using GNScript.Models;
+using System.Text;
 
 namespace GNScript;
 public class Interpreter
 {
     private VariableCollection _variables = new();
-    private readonly Dictionary<string, FunctionNode> _functions = [];
+    private readonly Dictionary<FunctionDictionaryKey, FunctionNode> _functions = [];
     private readonly Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
     private Stack<CallReturnValue> _callReturnValue = [];
     private int _scopeLevel = 0;
@@ -301,12 +300,12 @@ public class Interpreter
         }
         else if (node is FunctionNode functionNode)
         {
-            _functions[functionNode.Name] = functionNode;
+            _functions[new(functionNode)] = functionNode;
             return ExecutionModel.Empty;
         }
         else if (node is FunctionCallNode functionCallNode)
         {
-            if (_functions.TryGetValue(functionCallNode.Name, out FunctionNode function))
+            if (_functions.TryGetValue(new(functionCallNode), out FunctionNode function))
             {
                 var callScopeLevel = _scopeLevel;
                 _scopeLevel++;
@@ -582,8 +581,8 @@ public class Interpreter
                     var refBoxName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var refBox = (Dictionary<string, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
-                    var instanceFields = refBox.Keys.ToList();
+                    var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
+                    var instanceFields = refBox.Keys.Select(k => k.VariableName).ToList();
                     var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Element.Variable);
 
                     var sameFields = Enumerable.SequenceEqual(definitionFields.Order(), instanceFields.Order());
@@ -597,10 +596,27 @@ public class Interpreter
                     var fieldName = (string)valueModel;
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
-                    var refBox = (Dictionary<string, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
-                    var instanceFields = refBox.Keys.ToList();
+                    var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
+                    var instanceFields = refBox.Keys.Select(k => k.VariableName).ToList();
 
                     return instanceFields.Contains(fieldName) ? 1 : 0;
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.HasFunction))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected function name");
+                    var functionName = (string)valueModel;
+
+                    valueModel = Visit(propertyNode.Arguments[1]);
+                    ExceptionsHelper.FailIfFalse(valueModel.IsInt(), "Expected number of parameters");
+                    var parametersCount = (int)valueModel;
+
+                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
+                    var instanceFuncs = refBox.Keys.Select(k => k.FunctionKey).ToList();
+
+                    return instanceFuncs.Any(f => f.FunctionName == functionName && f.FunctionParameterCount == parametersCount) ? 1 : 0;
                 }
             }
 
@@ -611,11 +627,8 @@ public class Interpreter
             var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Element.Variable);
             ExceptionsHelper.FailIfFalse(fieldNames.Count == fieldNames.Distinct().Count(), "Field name duplication");
 
-            var funcNames = refBoxNode.Functions.ConvertAll(f => f.Element.Name);
-            ExceptionsHelper.FailIfFalse(funcNames.Count == funcNames.Distinct().Count(), "Func name duplication");
-
-            var fieldFuncNamesIntersect = fieldNames.Intersect(funcNames);
-            ExceptionsHelper.FailIfFalse(fieldFuncNamesIntersect.Count() == 0, "Function and field cannot have the same name");
+            var funcKeys = refBoxNode.Functions.ConvertAll(f => new FunctionDictionaryKey(f.Element));
+            ExceptionsHelper.FailIfFalse(funcKeys.Count == funcKeys.Distinct().Count(), "Func duplication");
 
             if (string.IsNullOrEmpty(refBoxNode.BaseClassName) == false)
             {
@@ -636,7 +649,7 @@ public class Interpreter
                 {
                     if (func.Modifier == AccessModifier.Private)
                         continue;
-                    if (refBoxNode.Functions.Any(f => f.Element.Name == func.Element.Name))
+                    if (refBoxNode.Functions.Any(f => new FunctionDictionaryKey(f.Element) == new FunctionDictionaryKey(func.Element)))
                         continue;
 
                     refBoxNode.Functions.Add(func);
@@ -649,17 +662,17 @@ public class Interpreter
         else if (node is RefBoxInstanceNode refBoxInstanceNode)
         {
             var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
-            var instance = new Dictionary<string, RefBoxElement>();
+            var instance = new Dictionary<FunctionVariableDictionaryKey, RefBoxElement>();
             ExceptionsHelper.FailIfTrue(refBoxDefinition.IsAbstract, "Cannot make instance of abstract ref box");
 
             foreach (var field in refBoxDefinition.Fields)
             {
-                instance[field.Element.Variable] = RefBoxElement.CreateFieldElement(Visit(field.Element.Expression).Value, field.Modifier);
+                instance[new(field.Element.Variable)] = RefBoxElement.CreateFieldElement(Visit(field.Element.Expression).Value, field.Modifier);
             }
 
             foreach (var func in refBoxDefinition.Functions)
             {
-                instance[func.Element.Name] = RefBoxElement.CreateFunctionElement(func.Element, func.Modifier);
+                instance[new(func.Element)] = RefBoxElement.CreateFunctionElement(func.Element, func.Modifier);
             }
 
             _variables.SetVariable(refBoxInstanceNode.InstanceName, instance);
@@ -668,26 +681,26 @@ public class Interpreter
         }
         else if (node is RefBoxFieldAccessNode refBoxFieldAccessNode)
         {
-            var instance = (Dictionary<string, RefBoxElement>)_variables.GetVariable(refBoxFieldAccessNode.InstanceName, _scopeLevel);
+            var instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFieldAccessNode.InstanceName, _scopeLevel);
 
-            if (instance[refBoxFieldAccessNode.FieldName].Modifier == AccessModifier.Private)
+            if (instance[new(refBoxFieldAccessNode.FieldName)].Modifier == AccessModifier.Private)
             {
                 throw new Exception("Cannot access private field");
             }
 
-            return ExecutionModel.FromObject(instance[refBoxFieldAccessNode.FieldName].Value);
+            return ExecutionModel.FromObject(instance[new(refBoxFieldAccessNode.FieldName)].Value);
         }
         else if (node is RefBoxFieldAssignmentNode refBoxFieldAssignmentNode)
         {
-            var instance = (Dictionary<string, RefBoxElement>)_variables.GetVariable(refBoxFieldAssignmentNode.InstanceName, _scopeLevel);
-            var modifier = instance[refBoxFieldAssignmentNode.FieldName].Modifier;
+            var instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFieldAssignmentNode.InstanceName, _scopeLevel);
+            var modifier = instance[new(refBoxFieldAssignmentNode.FieldName)].Modifier;
 
             if (modifier == AccessModifier.Private)
             {
                 throw new Exception("Cannot set value to private field");
             }
 
-            instance[refBoxFieldAssignmentNode.FieldName] = RefBoxElement.CreateFieldElement(Visit(refBoxFieldAssignmentNode.Value).Value, modifier);
+            instance[new(refBoxFieldAssignmentNode.FieldName)] = RefBoxElement.CreateFieldElement(Visit(refBoxFieldAssignmentNode.Value).Value, modifier);
             return ExecutionModel.Empty;
         }
         else if (node is ThrowNode throwNode)
@@ -697,8 +710,8 @@ public class Interpreter
         }
         else if (node is RefBoxFunctionCallNode refBoxFunctionCallNode)
         {
-            var instance = (Dictionary<string, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel);
-            var foundFunction = instance.TryGetValue(refBoxFunctionCallNode.FunctionCallNode.Name, out var element);
+            var instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel);
+            var foundFunction = instance.TryGetValue(new(refBoxFunctionCallNode.FunctionCallNode), out var element);
 
             if (foundFunction == false)
             {
@@ -718,11 +731,11 @@ public class Interpreter
             var globalVariables = _variables;
             _variables = element.Variables;
 
-            foreach (var (name, model) in instance)
+            foreach (var (functionVariable, model) in instance)
             {
                 if (model.Type == RefBoxElementType.Field)
                 {
-                    _variables.SetVariable(name, model.Value);
+                    _variables.SetVariable(functionVariable.VariableName, model.Value);
                 }
             }
 
@@ -739,7 +752,7 @@ public class Interpreter
             try
             {
                 var body = element.Function.Body;
-                
+
                 while (body != null)
                 {
                     Visit(body);
@@ -770,10 +783,10 @@ public class Interpreter
                 var refBoxFieldKeys = instance.Where(keyValue => keyValue.Value.Type == RefBoxElementType.Field).Select(x => x.Key);
                 foreach (var (name, value) in element.Variables.GetVariables(0))
                 {
-                    if (refBoxFieldKeys.Contains(name))
+                    if (refBoxFieldKeys.Contains(new(name)))
                     {
-                        var fieldModifier = instance[name].Modifier;
-                        instance[name] = RefBoxElement.CreateFieldElement(value, fieldModifier);
+                        var fieldModifier = instance[new(name)].Modifier;
+                        instance[new(name)] = RefBoxElement.CreateFieldElement(value, fieldModifier);
                     }
                 }
             }

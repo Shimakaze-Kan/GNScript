@@ -111,14 +111,14 @@ public class ExecutionModel
         return (model.Value as IList).Cast<object>().ToList().DeepCopy();
     }
     
-    public static explicit operator Dictionary<string, RefBoxElement>(ExecutionModel model)
+    public static explicit operator Dictionary<FunctionVariableDictionaryKey, RefBoxElement>(ExecutionModel model)
     {
         if (model.IsEmptyValue)
         {
             throw new Exception("Expected value");
         }
 
-        return model.Value as Dictionary<string, RefBoxElement>;
+        return model.Value as Dictionary<FunctionVariableDictionaryKey, RefBoxElement>;
     }
 
     public string ToPrintable()
@@ -191,11 +191,11 @@ public class ExecutionModel
             if (model.Type == RefBoxElementType.Function)
             {
                 var arguments = model.Function.Parameters;
-                sb.AppendFormat("{0} <- ({1}), ", kvp.Key, string.Join(", ", arguments));
+                sb.AppendFormat("{0} <- ({1}), ", (kvp.Key as FunctionVariableDictionaryKey).FunctionKey.FunctionName, string.Join(", ", arguments));
             }
             else
             {
-                sb.AppendFormat("{0}: {1}, ", kvp.Key, ConvertToString(model.Value));
+                sb.AppendFormat("{0}: {1}, ", (kvp.Key as FunctionVariableDictionaryKey).VariableName, ConvertToString(model.Value));
             }
         }
 

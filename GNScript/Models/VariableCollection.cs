@@ -1,5 +1,4 @@
-﻿using GNScript.Helpers;
-using System.Text;
+﻿using System.Text;
 
 namespace GNScript.Models;
 public class VariableCollection
