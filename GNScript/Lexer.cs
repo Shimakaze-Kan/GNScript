@@ -176,7 +176,7 @@ public class Lexer
                         var value = _input.Substring(start, _position - start);
                         tokens.Add(new Token(TokenType.Number, value));
                     }
-                    else if (char.IsLetter(current))
+                    else if (IsValidFirstCharacterOfIdentifier(current))
                     {
                         tokens.Add(ReadIdentifierOrKeyword());
                     }
@@ -195,7 +195,7 @@ public class Lexer
     private Token ReadIdentifierOrKeyword()
     {
         int start = _position;
-        while (_position < _input.Length && char.IsLetter(_input[_position]))
+        while (_position < _input.Length && IsValidIdentifierCharacter(_input[_position]))
         {
             _position++;
         }
@@ -241,5 +241,15 @@ public class Lexer
             default:
                 return new Token(TokenType.Identifier, value);
         }
+    }
+
+    private static bool IsValidIdentifierCharacter(char ch)
+    {
+        return char.IsLetter(ch) || char.IsAsciiDigit(ch) || ch == '_';
+    }
+
+    private static bool IsValidFirstCharacterOfIdentifier(char ch)
+    {
+        return char.IsLetter(ch) || ch == '_'; 
     }
 }
