@@ -179,4 +179,16 @@ public static class ArrayHelpers
 
         return result;
     }
+
+    public static (T, T) ToTuple<T>(this T[] array, int index1, int index2)
+    {
+        if (array == null)
+            throw new ArgumentNullException(nameof(array));
+        if (index1 < 0 || index1 >= array.Length)
+            throw new ArgumentOutOfRangeException(nameof(index1));
+        if (index2 < 0 || index2 >= array.Length)
+            throw new ArgumentOutOfRangeException(nameof(index2));
+
+        return (array[index1], array[index2]);
+    }
 }

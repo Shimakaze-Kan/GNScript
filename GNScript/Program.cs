@@ -1,4 +1,5 @@
 ﻿using GNScript;
+using GNScript.Helpers;
 
 internal class Program
 {
@@ -54,17 +55,40 @@ internal class Program
                     line = Console.ReadLine();
                     currentAllCode += line + Environment.NewLine;
 
-                    if (line.Trim().ToUpper() == "CLS")
+                    var trimmedLine = line.Trim();
+                    var trimmedUppercaseLine = trimmedLine.ToUpper();
+
+                    var readProgramFromFile = trimmedUppercaseLine.StartsWith("READ ") || trimmedUppercaseLine.StartsWith("READCLS ");
+                    if (readProgramFromFile)
+                    {
+                        (var command, var path) = trimmedLine.Split().ToTuple(0, 1);
+                        var code = File.ReadAllText(path);
+
+                        if (string.Equals(command, "readcls", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Clear();
+                        }
+                        currentAllCode = code;
+                        line = "";
+                        Console.WriteLine("File content:" + Environment.NewLine);
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.WriteLine(currentAllCode + Environment.NewLine);
+                        Console.ResetColor();
+                    } 
+                    else if (trimmedUppercaseLine == "CLS")
                     {
                         currentAllCode = "";
                         Clear();
                         goto end;
                     }
-
-                    if (line.Trim().ToUpper() == "DUMP")
+                    else if (trimmedUppercaseLine == "DUMP")
                     {
                         Interpreter.Dump();
                         goto end;
+                    }
+                    else if (trimmedUppercaseLine == "EXIT")
+                    {
+                        Environment.Exit(0);
                     }
                 }
                 while (line.Trim() != "");
