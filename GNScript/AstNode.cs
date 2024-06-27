@@ -336,3 +336,13 @@ public class ThrowNode : AstNode
         Message = message;
     }
 }
+
+public class ImportNode : AstNode
+{
+    public AstNode Path { get; }
+
+    public ImportNode(AstNode path)
+    {
+        Path = path;
+    }
+}

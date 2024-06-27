@@ -8,7 +8,7 @@ public class Interpreter
 {
     private VariableCollection _variables = new();
     private Dictionary<FunctionDictionaryKey, FunctionNode> _functions = [];
-    private readonly Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
+    private Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
     private Stack<CallReturnValue> _callReturnValue = [];
     private int _scopeLevel = 0;
     private bool _isForLoopParameterSection = false;
@@ -725,12 +725,10 @@ public class Interpreter
                 throw new Exception("Cannot call private function");
             }
 
-            var globalScopeLevel = _scopeLevel;
-            element.ScopeLevel = globalScopeLevel;
+            var runtimeState = GetRuntimeState();
 
-            var globalFunctions = _functions;
+            element.ScopeLevel = _scopeLevel;
             var refBoxAvailableFunctions = _functions.ToDictionary(x => x.Key, x => x.Value);
-
             foreach (var (functionVariable, model) in instance)
             {
                 if (model.Type == RefBoxElementType.Function)
@@ -738,11 +736,9 @@ public class Interpreter
                     refBoxAvailableFunctions[functionVariable.FunctionKey] = model.Function;
                 }
             }
+
             _functions = refBoxAvailableFunctions;
-
-            var globalVariables = _variables;
             _variables = element.Variables;
-
             foreach (var (functionVariable, model) in instance)
             {
                 if (model.Type == RefBoxElementType.Field)
@@ -754,7 +750,6 @@ public class Interpreter
             var callScopeLevel = element.ScopeLevel;
             element.ScopeLevel++;
 
-            var globalCallStack = _callReturnValue;
             _callReturnValue = element.CallReturnValue;
 
             DeclareFunctionParameters(refBoxFunctionCallNode.FunctionCallNode, element.Function);
@@ -788,10 +783,7 @@ public class Interpreter
             }
             finally
             {
-                _variables = globalVariables; // restore global variables
-                _callReturnValue = globalCallStack; // restore global call stack
-                _scopeLevel = globalScopeLevel; // restore scope level
-                _functions = globalFunctions; // restore global functions
+                SetRuntimeState(runtimeState);
 
                 var refBoxFieldKeys = instance.Where(keyValue => keyValue.Value.Type == RefBoxElementType.Field).Select(x => x.Key);
                 foreach (var (name, value) in element.Variables.GetVariables(0))
@@ -810,6 +802,45 @@ public class Interpreter
             }
             return ExecutionModel.FromObject(returnValue);
         }
+        else if (node is ImportNode importNode)
+        {
+            var pathModel = Visit(importNode.Path);
+            ExceptionsHelper.FailIfFalse(pathModel.IsString(), "Expected path");
+            var path = (string)pathModel;
+
+            var content = string.Empty;
+            try
+            {
+                content = File.ReadAllText(path);
+            }
+            catch (Exception)
+            {
+                throw new Exception($"Cannot read file {path}");
+            }
+
+            var interpreter = new Interpreter();
+            try
+            {
+                interpreter.SetRuntimeState(GetRuntimeState());
+                var lexer = new Lexer(content);
+                var tokens = lexer.Tokenize();
+
+                var parser = new Parser(tokens);
+                var ast = parser.Parse();
+
+                interpreter.Run(ast);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Exception occured while executing imported script: {ex.Message}");
+            }
+
+            var runtimeState = GetRuntimeState();
+            runtimeState.Combine(interpreter.GetRuntimeState());
+
+            SetRuntimeState(runtimeState);
+            return ExecutionModel.Empty;
+        }
 
         throw new Exception("AST node error");
     }
@@ -827,9 +858,9 @@ public class Interpreter
             sb.AppendLine(_variables.ToString());
 
         sb.AppendLine("[Functions]");
-        foreach (var (name, function) in _functions)
+        foreach (var (key, function) in _functions)
         {
-            sb.AppendLine($"  {name} <- {{{string.Join(", ", function.Parameters)}}}");
+            sb.AppendLine($"  {key.FunctionName} <- {{{string.Join(", ", function.Parameters)}}}");
         }
 
         if (_functions.Count == 0)
@@ -855,6 +886,29 @@ public class Interpreter
     {
         _scopeLevel = 0;
         _variables.ClearScope(1);
+    }
+
+    public InterpreterRuntimeState GetRuntimeState()
+    {
+        return new()
+        {
+            CallReturnValues = _callReturnValue,
+            Functions = _functions,
+            IsForLoopParameterSection = _isForLoopParameterSection,
+            RefBoxDefinitions = _refBoxDefinitions,
+            ScopeLevel = _scopeLevel,
+            Variables = _variables
+        };
+    }
+
+    public void SetRuntimeState(InterpreterRuntimeState interpreterRuntimeState)
+    {
+        _callReturnValue = interpreterRuntimeState.CallReturnValues;
+        _functions = interpreterRuntimeState.Functions;
+        _isForLoopParameterSection = interpreterRuntimeState.IsForLoopParameterSection;
+        _refBoxDefinitions = interpreterRuntimeState.RefBoxDefinitions;
+        _scopeLevel = interpreterRuntimeState.ScopeLevel;
+        _variables = interpreterRuntimeState.Variables;
     }
 
     private void DeclareFunctionParameters(FunctionCallNode functionCallNode, FunctionNode function)

@@ -44,6 +44,7 @@ public enum TokenType
     Create,
     Throw,
     Abstract,
+    Import,
 
     #region Access Modifiers
     Private,

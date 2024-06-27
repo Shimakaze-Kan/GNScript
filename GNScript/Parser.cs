@@ -144,6 +144,12 @@ public class Parser
         {
             return ParseRefBoxDeclaration();
         }
+        else if (_tokens[_position].Type == TokenType.Import)
+        {
+            _position++; // import
+            var path = ParseExpression();
+            return new ImportNode(path);
+        }
 
         return ParseExpression();
     }

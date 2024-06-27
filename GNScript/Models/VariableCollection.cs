@@ -3,6 +3,7 @@
 namespace GNScript.Models;
 public class VariableCollection
 {
+    public int MaxScopeLevel { get; private set; }
     private Dictionary<ScopeLevel, Dictionary<string, object>> _variables = [];
 
     public void SetVariable(string name, object value, int scopeLevel = 0, bool isParameterVariable = false)
@@ -10,6 +11,7 @@ public class VariableCollection
         if (_variables.ContainsKey(new(scopeLevel)) == false)
         {
             _variables[new(scopeLevel)] = [];
+            MaxScopeLevel = scopeLevel;
         }
 
         if (isParameterVariable)

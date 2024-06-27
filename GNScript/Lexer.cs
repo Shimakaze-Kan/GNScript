@@ -235,6 +235,8 @@ public class Lexer
                 return new Token(TokenType.Public, value);
             case "abstract":
                 return new Token(TokenType.Abstract, value);
+            case "import":
+                return new Token(TokenType.Import, value);
             case "wuwei":
             case "void":
                 return new Token(TokenType.Void, "void");
