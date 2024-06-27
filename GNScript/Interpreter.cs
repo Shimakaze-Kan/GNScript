@@ -7,7 +7,7 @@ namespace GNScript;
 public class Interpreter
 {
     private VariableCollection _variables = new();
-    private readonly Dictionary<FunctionDictionaryKey, FunctionNode> _functions = [];
+    private Dictionary<FunctionDictionaryKey, FunctionNode> _functions = [];
     private readonly Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
     private Stack<CallReturnValue> _callReturnValue = [];
     private int _scopeLevel = 0;
@@ -728,6 +728,18 @@ public class Interpreter
             var globalScopeLevel = _scopeLevel;
             element.ScopeLevel = globalScopeLevel;
 
+            var globalFunctions = _functions;
+            var refBoxAvailableFunctions = _functions.ToDictionary(x => x.Key, x => x.Value);
+
+            foreach (var (functionVariable, model) in instance)
+            {
+                if (model.Type == RefBoxElementType.Function)
+                {
+                    refBoxAvailableFunctions[functionVariable.FunctionKey] = model.Function;
+                }
+            }
+            _functions = refBoxAvailableFunctions;
+
             var globalVariables = _variables;
             _variables = element.Variables;
 
@@ -779,6 +791,7 @@ public class Interpreter
                 _variables = globalVariables; // restore global variables
                 _callReturnValue = globalCallStack; // restore global call stack
                 _scopeLevel = globalScopeLevel; // restore scope level
+                _functions = globalFunctions; // restore global functions
 
                 var refBoxFieldKeys = instance.Where(keyValue => keyValue.Value.Type == RefBoxElementType.Field).Select(x => x.Key);
                 foreach (var (name, value) in element.Variables.GetVariables(0))
