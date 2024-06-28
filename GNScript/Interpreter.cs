@@ -147,7 +147,15 @@ public class Interpreter
                         var trimmedArray = leftValueArray[0..^rightValueInt];
                         return ExecutionModel.FromObject(trimmedArray);
                     case TokenType.Divide:
-                        return ExecutionModel.FromObject(leftValueArray.Chunk(rightValueInt));
+                        var chunks = leftValueArray.Chunk(rightValueInt);
+                        var list = new List<object>();
+
+                        foreach (var chunk in chunks)
+                        {
+                            list.Add(chunk.ToList());
+                        }
+
+                        return ExecutionModel.FromObject(list);
                     case TokenType.Multiply:
                         return ExecutionModel.FromObject(leftValueArray.RepeatList(rightValueInt));
                     case TokenType.LessThan:
