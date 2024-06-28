@@ -660,6 +660,10 @@ public class Interpreter
                 }
             }
 
+            var notOverridedAbstractFunctions = refBoxNode.Functions.Where(f => f.IsAbstract);
+            ExceptionsHelper.FailIfTrue(notOverridedAbstractFunctions.Count() != 0 && refBoxNode.IsAbstract == false, 
+                $"Class cannot have not overrided functions: {string.Join(", ", notOverridedAbstractFunctions.Select(f => f.Element.Name))}");
+
             _refBoxDefinitions[refBoxNode.Name] = refBoxNode;
             return ExecutionModel.Empty;
         }

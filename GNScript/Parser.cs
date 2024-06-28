@@ -255,7 +255,7 @@ public class Parser
         return false;
     }
 
-    private AstNode ParseFunctionDefinition()
+    private AstNode ParseFunctionDefinition(bool isAbstractFunction = false)
     {
         _position++; // Skip 'function' keyword
         var functionName = _tokens[_position].Value;
@@ -276,7 +276,9 @@ public class Parser
         }
 
         _position++; // Skip right parenthesis
-        var body = ParseFunctionBody();
+        AstNode body = null;
+        if (isAbstractFunction == false)
+            body = ParseFunctionBody();
 
         return new FunctionNode(functionName, parameters, body);
     }
@@ -661,10 +663,17 @@ public class Parser
         while (_tokens[_position].Type != TokenType.EndBlock)
         {
             var accessModifier = Enum.GetName(AccessModifier.Exposed);
+            var isAbstractFunction = false;
 
             if (_tokens[_position].Type == TokenType.Guarded || _tokens[_position].Type == TokenType.Exposed)
             {
                 accessModifier = Enum.GetName(_tokens[_position].Type);
+                _position++;
+            }
+            
+            if (_tokens[_position].Type == TokenType.Abstract)
+            {
+                isAbstractFunction = true;
                 _position++;
             }
 
@@ -672,8 +681,8 @@ public class Parser
 
             if (_tokens[_position].Type == TokenType.Function)
             {
-                var function = ParseFunctionDefinition() as FunctionNode;
-                functions.Add(new(function, modifier));
+                var function = ParseFunctionDefinition(isAbstractFunction: isAbstractFunction) as FunctionNode;
+                functions.Add(new(function, modifier, isAbstractFunction));
                 continue;
             }
             // else parse field
@@ -696,7 +705,7 @@ public class Parser
 
             var initialValue = ParseExpression();
 
-            fields.Add(new(new AssignmentNode(fieldName, initialValue), modifier));
+            fields.Add(new(new AssignmentNode(fieldName, initialValue), modifier, isAbstract: false)); // fields cannot be abstract
         }
 
         _position++; // end

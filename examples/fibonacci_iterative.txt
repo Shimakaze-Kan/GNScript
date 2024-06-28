@@ -1,17 +1,17 @@
 function fib(n)
-  fp = 0
+  f1 = 0
   if n == 0
-    fp =0
+    f1 =0
   else
-    fp = 0
-    fd = 1
+    f1 = 0
+    f2 = 1
     for i = 0; i < n; i = i + 1
-      m = fp + fd
-      fp = fd
-      fd = m
+      m = f1 + f2
+      f1 = f2
+      f2 = m
    end
   end
-return fp
+return f1
 
 for i = 0; i < 25; i = i + 1
   print fib(i)

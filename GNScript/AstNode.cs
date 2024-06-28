@@ -255,13 +255,15 @@ public class RefBoxNode : AstNode
 
 public class RefBoxAccessModifier<T> : AstNode
 {
+    public bool IsAbstract { get; }
     public AccessModifier Modifier { get; }
     public T Element { get; }
 
-    public RefBoxAccessModifier(T element, AccessModifier modifier)
+    public RefBoxAccessModifier(T element, AccessModifier modifier, bool isAbstract)
     {
         Element = element;
         Modifier = modifier;
+        IsAbstract = isAbstract;
     }
 }
 
