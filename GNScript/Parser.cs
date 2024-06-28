@@ -660,9 +660,9 @@ public class Parser
         var fields = new List<RefBoxAccessModifier<AssignmentNode>>();
         while (_tokens[_position].Type != TokenType.EndBlock)
         {
-            var accessModifier = Enum.GetName(AccessModifier.Public);
+            var accessModifier = Enum.GetName(AccessModifier.Exposed);
 
-            if (_tokens[_position].Type == TokenType.Private || _tokens[_position].Type == TokenType.Public)
+            if (_tokens[_position].Type == TokenType.Guarded || _tokens[_position].Type == TokenType.Exposed)
             {
                 accessModifier = Enum.GetName(_tokens[_position].Type);
                 _position++;

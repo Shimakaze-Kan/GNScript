@@ -47,8 +47,8 @@ public enum TokenType
     Import,
 
     #region Access Modifiers
-    Private,
-    Public,
+    Guarded,
+    Exposed,
     #endregion
 
     EOF
@@ -56,8 +56,8 @@ public enum TokenType
 
 public enum AccessModifier
 {
-    Private,
-    Public
+    Guarded,
+    Exposed
 }
 
 public class Token

@@ -229,10 +229,10 @@ public class Lexer
                 return new Token(TokenType.Create, value);
             case "throw":
                 return new Token(TokenType.Throw, value);
-            case "private":
-                return new Token(TokenType.Private, value);
-            case "public":
-                return new Token(TokenType.Public, value);
+            case "guarded":
+                return new Token(TokenType.Guarded, value);
+            case "exposed":
+                return new Token(TokenType.Exposed, value);
             case "abstract":
                 return new Token(TokenType.Abstract, value);
             case "import":

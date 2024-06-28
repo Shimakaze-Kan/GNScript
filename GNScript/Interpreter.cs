@@ -645,8 +645,6 @@ public class Interpreter
 
                 foreach (var field in baseRefBoxDefinition.Fields)
                 {
-                    if (field.Modifier == AccessModifier.Private)
-                        continue;
                     if (refBoxNode.Fields.Any(f => f.Element.Variable == field.Element.Variable))
                         continue;
 
@@ -655,8 +653,6 @@ public class Interpreter
 
                 foreach (var func in baseRefBoxDefinition.Functions)
                 {
-                    if (func.Modifier == AccessModifier.Private)
-                        continue;
                     if (refBoxNode.Functions.Any(f => new FunctionDictionaryKey(f.Element) == new FunctionDictionaryKey(func.Element)))
                         continue;
 
@@ -691,9 +687,9 @@ public class Interpreter
         {
             var instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFieldAccessNode.InstanceName, _scopeLevel);
 
-            if (instance[new(refBoxFieldAccessNode.FieldName)].Modifier == AccessModifier.Private)
+            if (instance[new(refBoxFieldAccessNode.FieldName)].Modifier == AccessModifier.Guarded)
             {
-                throw new Exception("Cannot access private field");
+                throw new Exception("Cannot access guarded field");
             }
 
             return ExecutionModel.FromObject(instance[new(refBoxFieldAccessNode.FieldName)].Value);
@@ -703,9 +699,9 @@ public class Interpreter
             var instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFieldAssignmentNode.InstanceName, _scopeLevel);
             var modifier = instance[new(refBoxFieldAssignmentNode.FieldName)].Modifier;
 
-            if (modifier == AccessModifier.Private)
+            if (modifier == AccessModifier.Guarded)
             {
-                throw new Exception("Cannot set value to private field");
+                throw new Exception("Cannot set value to guarded field");
             }
 
             instance[new(refBoxFieldAssignmentNode.FieldName)] = RefBoxElement.CreateFieldElement(Visit(refBoxFieldAssignmentNode.Value).Value, modifier);
@@ -728,9 +724,9 @@ public class Interpreter
 
             var modifier = element.Modifier;
 
-            if (modifier == AccessModifier.Private)
+            if (modifier == AccessModifier.Guarded)
             {
-                throw new Exception("Cannot call private function");
+                throw new Exception("Cannot call guarded function");
             }
 
             var runtimeState = GetRuntimeState();
