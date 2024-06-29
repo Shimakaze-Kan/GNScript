@@ -618,6 +618,14 @@ public class Interpreter
                     string result = $"{stringValue[..index]}{value}{stringValue[(index + 1)..]}";
                     return result;
                 }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToInt))
+                {
+                    return int.Parse(stringValue);
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.CanConvertToInt))
+                {
+                    return int.TryParse(stringValue, out _) ? 1 : 0;
+                }
             }
 
             var refBoxProperties = EnumHelpers.GetEnumNamesLowercase<BoxProperty>();
@@ -711,6 +719,16 @@ public class Interpreter
                 }
             }
 
+            var intProperties = EnumHelpers.GetEnumNamesLowercase<IntProperty>();
+            if (nodeModel.IsInt() && intProperties.Contains(propertyNode.PropertyName))
+            {
+                var intValue = (int)nodeModel;
+                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, IntProperty.ToString))
+                {
+                    return intValue.ToString();
+                }
+            }
+
             throw new Exception($"Property '{propertyNode.PropertyName}' not found");
         }
         else if (node is RefBoxNode refBoxNode)
@@ -744,7 +762,7 @@ public class Interpreter
             }
 
             var notOverridedAbstractFunctions = refBoxNode.Functions.Where(f => f.IsAbstract);
-            ExceptionsHelper.FailIfTrue(notOverridedAbstractFunctions.Count() != 0 && refBoxNode.IsAbstract == false, 
+            ExceptionsHelper.FailIfTrue(notOverridedAbstractFunctions.Count() != 0 && refBoxNode.IsAbstract == false,
                 $"Class cannot have not overrided functions: {string.Join(", ", notOverridedAbstractFunctions.Select(f => f.Element.Name))}");
 
             _refBoxDefinitions[refBoxNode.Name] = refBoxNode;
@@ -855,7 +873,7 @@ public class Interpreter
 
                 return ExecutionModel.FromObject(lastCallValue);
             }
-            
+
             var foundFunction = instance.TryGetValue(new(refBoxFunctionCallNode.FunctionCallNode), out var element);
 
             if (foundFunction == false)
@@ -911,7 +929,7 @@ public class Interpreter
                     body = body.Next;
 
                     if (_callReturnValue.Any())
-                      {
+                    {
                         _variables.ClearScope(callScopeLevel + 1);
                         _scopeLevel = callScopeLevel;
                         var callReturnValue = _callReturnValue.Pop();

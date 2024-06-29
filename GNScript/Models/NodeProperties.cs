@@ -26,6 +26,8 @@ public enum StringProperty
     Length,
     Split,
     ReplaceAt,
+    ToInt,
+    CanConvertToInt
 }
 
 public enum BoxProperty
@@ -34,4 +36,9 @@ public enum BoxProperty
     HasField,
     HasFunction,
     ReflectionSetField,
+}
+
+public enum IntProperty
+{
+    ToString
 }
