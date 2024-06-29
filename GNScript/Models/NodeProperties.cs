@@ -24,7 +24,8 @@ public enum StringProperty
     Reverse,
     ToArray,
     Length,
-    Split
+    Split,
+    ReplaceAt,
 }
 
 public enum BoxProperty

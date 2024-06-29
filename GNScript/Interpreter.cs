@@ -485,6 +485,17 @@ public class Interpreter
                 }
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.ToString))
                 {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 0 && propertyNode.Arguments.Count != 0, "Expected 0 or 1 arguments");
+
+                    if (propertyNode.Arguments.Count == 1)
+                    {
+                        var connectModel = Visit(propertyNode.Arguments[0]);
+                        ExceptionsHelper.FailIfFalse(connectModel.IsString(), "Expected string argument");
+                        var connect = (string)connectModel;
+
+                        return string.Join(connect, arrayValue);
+                    }
+
                     return string.Join("", arrayValue);
                 }
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.RemoveAt))
@@ -590,6 +601,22 @@ public class Interpreter
                     }
 
                     return ExecutionModel.FromObject(stringValue.Split().Cast<object>().ToList());
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ReplaceAt))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var indexModel = Visit(propertyNode.Arguments[0]);
+                    var valueModel = Visit(propertyNode.Arguments[1]);
+                    ExceptionsHelper.FailIfFalse(indexModel.IsInt(), "Expected int index");
+                    ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected string value");
+
+                    int index = (int)indexModel;
+                    string value = (string)valueModel;
+
+                    ExceptionsHelper.FailIfTrue(index < 0 || index >= stringValue.Length, "Index out of range");
+
+                    string result = $"{stringValue[..index]}{value}{stringValue[(index + 1)..]}";
+                    return result;
                 }
             }
 
