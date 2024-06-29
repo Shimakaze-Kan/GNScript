@@ -2,7 +2,7 @@
 using GNScript.Models;
 
 namespace GNScript;
-public abstract class AstNode 
+public abstract class AstNode
 {
     public AstNode Next { get; set; }
 }
@@ -241,7 +241,7 @@ public class RefBoxNode : AstNode
 
     public RefBoxNode(string name,
         bool isAbstract,
-        List<RefBoxAccessModifier<AssignmentNode>> fields, 
+        List<RefBoxAccessModifier<AssignmentNode>> fields,
         List<RefBoxAccessModifier<FunctionNode>> functions,
         string baseClassName)
     {
@@ -282,12 +282,10 @@ public class VariableDeclarationNode : AstNode
 public class RefBoxInstanceNode : AstNode
 {
     public string RefBoxName { get; }
-    public string InstanceName { get; }
 
-    public RefBoxInstanceNode(string refBoxName, string instanceName)
+    public RefBoxInstanceNode(string refBoxName)
     {
         RefBoxName = refBoxName;
-        InstanceName = instanceName;
     }
 }
 
@@ -305,13 +303,37 @@ public class RefBoxFieldAccessNode : AstNode
 
 public class RefBoxFunctionCallNode : AstNode
 {
-    public string InstanceName { get; }
-    public FunctionCallNode FunctionCallNode { get; }
+    public string InstanceName { get; private set; }
+    public FunctionCallNode FunctionCallNode { get; private set; }
 
-    public RefBoxFunctionCallNode(string instanceName, FunctionCallNode functionCallNode)
+    public RefBoxInstanceNode AnonymousRefBoxInstanceNode { get; set; }
+    public RefBoxFunctionCallNode PreviousRefBoxFunction { get; private set; }
+
+    public static RefBoxFunctionCallNode CreateVariableFunctionCall(string instanceName, FunctionCallNode functionCallNode)
     {
-        InstanceName = instanceName;
-        FunctionCallNode = functionCallNode;
+        return new RefBoxFunctionCallNode()
+        {
+            InstanceName = instanceName,
+            FunctionCallNode = functionCallNode,
+        };
+    }
+
+    public static RefBoxFunctionCallNode CreateAnonymousInstanceFunctionCall(RefBoxInstanceNode refBoxInstanceNode, FunctionCallNode functionCallNode)
+    {
+        return new RefBoxFunctionCallNode()
+        {
+            AnonymousRefBoxInstanceNode = refBoxInstanceNode,
+            FunctionCallNode = functionCallNode,
+        };
+    }
+
+    public static RefBoxFunctionCallNode CreatePreviousCallWithFunctionCall(RefBoxFunctionCallNode refBoxFunctionCallNode, FunctionCallNode functionCallNode)
+    {
+        return new RefBoxFunctionCallNode()
+            {
+            PreviousRefBoxFunction = refBoxFunctionCallNode,
+            FunctionCallNode =functionCallNode
+                };
     }
 }
 
@@ -346,5 +368,15 @@ public class ImportNode : AstNode
     public ImportNode(AstNode path)
     {
         Path = path;
+    }
+}
+
+public class AnonymousValue : AstNode
+{
+    public object Value { get; }
+
+    public AnonymousValue(object value)
+    {
+        Value = value;
     }
 }

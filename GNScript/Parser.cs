@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Linq.Expressions;
+using System.Xml.Linq;
 
 namespace GNScript;
 public class Parser
@@ -24,7 +25,7 @@ public class Parser
 
             var result = ParseStatement();
 
-            if (startNode == null)
+             if (startNode == null)
             {
                 node = result;
                 startNode = node;
@@ -85,7 +86,8 @@ public class Parser
                 }
                 else if (_tokens[_position].Type == TokenType.Create)
                 {
-                    return ParseRefBoxInstance(instanceName: variableName);
+                    var refBoxInstance = ParseRefBoxInstance();
+                    return new AssignmentNode(variableName, refBoxInstance);
                 }
 
                 var expression = ParseExpression();
@@ -447,7 +449,30 @@ public class Parser
                     throw new Exception("Missing closing parenthesis");
                 }
                 _position++;
-                return expression;
+
+                AstNode result = expression;
+                while (_tokens[_position].Type == TokenType.Dot || _tokens[_position].Type == TokenType.Colon) // we can call a function or property for anonymous refbox instance
+                {
+                    if (_tokens[_position].Type == TokenType.Dot)
+                    {
+                        _position++; // .
+                        var functioncall = ParseFunctionCall() as FunctionCallNode;
+
+                        if (result is RefBoxInstanceNode refBoxInstanceNode)
+                        {
+                            result = RefBoxFunctionCallNode.CreateAnonymousInstanceFunctionCall(refBoxInstanceNode, functioncall);
+                        }
+                        else if (result is RefBoxFunctionCallNode refBoxFunctionCallNode)
+                        {
+                            result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, functioncall);
+                        }
+                    }
+                    else
+                    {
+
+                    }
+                }
+                return result;
             case TokenType.LeftBracket:
                 var array = ParseArrayDeclaration();
 
@@ -461,6 +486,8 @@ public class Parser
                 }
 
                 return array;
+            case TokenType.Create:
+                return ParseRefBoxInstance();
             default:
                 throw new Exception($"Unexpected token: {token.Type}");
         }
@@ -523,7 +550,29 @@ public class Parser
 
         var functioncall = ParseFunctionCall() as FunctionCallNode;
 
-        return new RefBoxFunctionCallNode(instanceName, functioncall);
+        AstNode result = RefBoxFunctionCallNode.CreateVariableFunctionCall(instanceName, functioncall);
+        while (_tokens[_position].Type == TokenType.Dot || _tokens[_position].Type == TokenType.Colon) // we can call a function or property for anonymous refbox instance
+        {
+            if (_tokens[_position].Type == TokenType.Dot)
+            {
+                _position++; // .
+                var nextFunctioncall = ParseFunctionCall() as FunctionCallNode;
+
+                if (result is RefBoxInstanceNode refBoxInstanceNode)
+                {
+                    result = RefBoxFunctionCallNode.CreateAnonymousInstanceFunctionCall(refBoxInstanceNode, nextFunctioncall);
+                }
+                else if (result is RefBoxFunctionCallNode refBoxFunctionCallNode)
+                {
+                    result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, nextFunctioncall);
+                }
+            }
+            else
+            {
+
+            }
+        }
+        return result;
     }
 
     private AstNode ParseInput()
@@ -713,7 +762,7 @@ public class Parser
         return new RefBoxNode(refBoxName, isAbstract, fields, functions, baseClassName);
     }
 
-    private AstNode ParseRefBoxInstance(string instanceName)
+    private AstNode ParseRefBoxInstance()
     {
         if (_tokens[_position].Type != TokenType.Create)
         {
@@ -729,7 +778,7 @@ public class Parser
         var refBoxName = _tokens[_position].Value;
         _position++; // RefBox name
 
-        return new RefBoxInstanceNode(refBoxName, instanceName);
+        return new RefBoxInstanceNode(refBoxName);
     }
 
     private List<AstNode> TryParsePropertyArguments()

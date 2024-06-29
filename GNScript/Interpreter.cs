@@ -683,9 +683,7 @@ public class Interpreter
                 instance[new(func.Element)] = RefBoxElement.CreateFunctionElement(func.Element, func.Modifier);
             }
 
-            _variables.SetVariable(refBoxInstanceNode.InstanceName, instance);
-
-            return ExecutionModel.Empty;
+            return ExecutionModel.FromObject(instance);
         }
         else if (node is RefBoxFieldAccessNode refBoxFieldAccessNode)
         {
@@ -718,7 +716,72 @@ public class Interpreter
         }
         else if (node is RefBoxFunctionCallNode refBoxFunctionCallNode)
         {
-            var instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel);
+            Dictionary<FunctionVariableDictionaryKey, RefBoxElement> instance = null;
+
+
+            if (string.IsNullOrEmpty(refBoxFunctionCallNode.InstanceName) == false)
+            {
+                instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel);
+            }
+            else if (refBoxFunctionCallNode.AnonymousRefBoxInstanceNode != null)
+            {
+                instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)Visit(refBoxFunctionCallNode.AnonymousRefBoxInstanceNode).Value;
+            }
+            else if (refBoxFunctionCallNode.PreviousRefBoxFunction != null)
+            {
+                Stack<AstNode> callChain = [];
+
+                AstNode currentNode = refBoxFunctionCallNode;
+                while (currentNode != null)
+                {
+                    callChain.Push(currentNode);
+                    currentNode = (currentNode as RefBoxFunctionCallNode)?.PreviousRefBoxFunction;
+                }
+
+                var firstCall = callChain.ToList()[0];
+                callChain = new Stack<AstNode>(callChain.ToList().Skip(1));
+
+                //if ((firstCall as RefBoxFunctionCallNode).AnonymousRefBoxInstanceNode == null)
+                //{
+                //    throw new Exception("Invalid ref box instance");
+                //}
+
+                var firstCallReturnValue = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)Visit(firstCall).Value;
+
+                List<string> anonymousRefBoxDefinitionNames = [];
+
+                RefBoxInstanceNode anonymousRefBoxInstance = CreateAnonymousRefBoxInstance(firstCallReturnValue, anonymousRefBoxDefinitionNames);
+
+                var callReturnInstance = anonymousRefBoxInstance;
+                object lastCallValue = null;
+                foreach (var call in callChain.Reverse())
+                {
+                    (call as RefBoxFunctionCallNode).AnonymousRefBoxInstanceNode = callReturnInstance;
+                    lastCallValue = Visit(call).Value;
+
+                    var castedLastCallValue = lastCallValue as Dictionary<FunctionVariableDictionaryKey, RefBoxElement>;
+
+                    if (castedLastCallValue != null)
+                    {
+                        callReturnInstance = CreateAnonymousRefBoxInstance(castedLastCallValue, anonymousRefBoxDefinitionNames);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                foreach (var name in anonymousRefBoxDefinitionNames)
+                {
+                    _refBoxDefinitions.Remove(name);
+                }
+
+                return ExecutionModel.FromObject(lastCallValue);
+            }
+            
+            //var instance = refBoxFunctionCallNode.AnonymousRefBoxInstanceNode == null ?
+            //    (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel) :
+            //    Visit(refBoxFunctionCallNode.AnonymousRefBoxInstanceNode).Value as Dictionary<FunctionVariableDictionaryKey, RefBoxElement>;
             var foundFunction = instance.TryGetValue(new(refBoxFunctionCallNode.FunctionCallNode), out var element);
 
             if (foundFunction == false)
@@ -774,7 +837,7 @@ public class Interpreter
                     body = body.Next;
 
                     if (_callReturnValue.Any())
-                    {
+                      {
                         _variables.ClearScope(callScopeLevel + 1);
                         _scopeLevel = callScopeLevel;
                         var callReturnValue = _callReturnValue.Pop();
@@ -849,8 +912,28 @@ public class Interpreter
             SetRuntimeState(runtimeState);
             return ExecutionModel.Empty;
         }
+        else if (node is AnonymousValue anonymousValue)
+        {
+            return ExecutionModel.FromObject(anonymousValue.Value);
+        }
 
         throw new Exception("AST node error");
+    }
+
+    private RefBoxInstanceNode CreateAnonymousRefBoxInstance(Dictionary<FunctionVariableDictionaryKey, RefBoxElement>? callReturnValue, List<string> anonymousRefBoxDefinitionNames)
+    {
+        anonymousRefBoxDefinitionNames.Add($"anonymous_{Guid.NewGuid()}");
+        var rawFields = callReturnValue.Where(i => i.Value.Value != null);
+        var fields = rawFields.Select(rf => new RefBoxAccessModifier<AssignmentNode>(new(rf.Key.VariableName, new AnonymousValue(rf.Value.Value)), rf.Value.Modifier, false)).ToList();
+
+        var rawFunc = callReturnValue.Where(i => i.Value.Function != null);
+        var functions = rawFunc.Select(rf => new RefBoxAccessModifier<FunctionNode>(new(rf.Key.FunctionKey.FunctionName, rf.Value.Function.Parameters, rf.Value.Function.Body), rf.Value.Modifier, false)).ToList();
+
+        var anonymousRefBoxNode = new RefBoxNode(anonymousRefBoxDefinitionNames.Last(), false, fields, functions, null);
+        Visit(anonymousRefBoxNode); // declare anonymous RefBox
+        var anonymousRefBoxInstance = new RefBoxInstanceNode(anonymousRefBoxDefinitionNames.Last());
+
+        return anonymousRefBoxInstance;
     }
 
     public void Dump()
