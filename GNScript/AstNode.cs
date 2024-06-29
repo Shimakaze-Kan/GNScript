@@ -371,12 +371,42 @@ public class ImportNode : AstNode
     }
 }
 
-public class AnonymousValue : AstNode
+public class AnonymousValueNode : AstNode
 {
     public object Value { get; }
 
-    public AnonymousValue(object value)
+    public AnonymousValueNode(object value)
     {
         Value = value;
+    }
+}
+
+public class ReadFileNode : AstNode
+{
+    public AstNode Path { get; }
+
+    public ReadFileNode(AstNode path)
+    {
+        Path = path;
+    }
+}
+
+public class ReadWholeFileNode : AstNode
+{
+    public AstNode Path { get; }
+
+    public ReadWholeFileNode(AstNode path)
+    {
+        Path = path;
+    }
+}
+
+public class FileExistsNode : AstNode
+{
+    public AstNode Path { get; }
+
+    public FileExistsNode(AstNode path)
+    {
+        Path = path;
     }
 }

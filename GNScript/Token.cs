@@ -45,6 +45,9 @@ public enum TokenType
     Throw,
     Abstract,
     Import,
+    ReadFile,
+    ReadWholeFile,
+    FileExists,
 
     #region Access Modifiers
     Guarded,

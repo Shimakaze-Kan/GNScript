@@ -1,4 +1,6 @@
-﻿namespace GNScript;
+﻿using System.Xml.Linq;
+
+namespace GNScript;
 public class Parser
 {
     private readonly List<Token> _tokens;
@@ -519,6 +521,84 @@ public class Parser
                 return array;
             case TokenType.Create:
                 return ParseRefBoxInstance();
+            case TokenType.ReadFile:
+                {
+                    _position++; // readFile
+                    if (_tokens[_position].Type != TokenType.LeftParen)
+                    {
+                        throw new Exception("Expected (");
+                    }
+                    _position++; // (
+
+                    var path = ParseExpression();
+
+                    if (_tokens[_position].Type != TokenType.RightParen)
+                    {
+                        throw new Exception("Expected )");
+                    }
+                    _position++; // )
+
+                    var node = new ReadFileNode(path);
+
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+                    {
+                        return ParsePropertyAccess(node);
+                    }
+
+                    return node;
+                }
+            case TokenType.ReadWholeFile:
+                {
+                    _position++; // readWholeFile
+                    if (_tokens[_position].Type != TokenType.LeftParen)
+                    {
+                        throw new Exception("Expected (");
+                    }
+                    _position++; // (
+
+                    var path = ParseExpression();
+
+                    if (_tokens[_position].Type != TokenType.RightParen)
+                    {
+                        throw new Exception("Expected )");
+                    }
+                    _position++; // )
+
+                    var node = new ReadWholeFileNode(path);
+
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+                    {
+                        return ParsePropertyAccess(node);
+                    }
+
+                    return node;
+                }
+            case TokenType.FileExists:
+                {
+                    _position++; // fileExists
+                    if (_tokens[_position].Type != TokenType.LeftParen)
+                    {
+                        throw new Exception("Expected (");
+                    }
+                    _position++; // (
+
+                    var path = ParseExpression();
+
+                    if (_tokens[_position].Type != TokenType.RightParen)
+                    {
+                        throw new Exception("Expected )");
+                    }
+                    _position++; // )
+
+                    var node = new FileExistsNode(path);
+
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+                    {
+                        return ParsePropertyAccess(node);
+                    }
+
+                    return node;
+                }
             default:
                 throw new Exception($"Unexpected token: {token.Type}");
         }

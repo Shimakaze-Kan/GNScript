@@ -959,9 +959,42 @@ public class Interpreter
             SetRuntimeState(runtimeState);
             return ExecutionModel.Empty;
         }
-        else if (node is AnonymousValue anonymousValue)
+        else if (node is AnonymousValueNode anonymousValue)
         {
             return ExecutionModel.FromObject(anonymousValue.Value);
+        }
+        else if (node is ReadFileNode readFileNode)
+        {
+            var pathModel = Visit(readFileNode.Path);
+            if (pathModel.IsString() == false)
+            {
+                throw new Exception("Expected path");
+            }
+
+            var content = File.ReadAllLines((string)pathModel);
+            return ExecutionModel.FromObject(content.Cast<object>().ToList());
+        }
+        else if (node is ReadWholeFileNode readWholeFileNode)
+        {
+            var pathModel = Visit(readWholeFileNode.Path);
+            if (pathModel.IsString() == false)
+            {
+                throw new Exception("Expected path");
+            }
+
+            var content = File.ReadAllText((string)pathModel);
+            return content;
+        }
+        else if (node is FileExistsNode fileExistsNode)
+        {
+            var pathModel = Visit(fileExistsNode.Path);
+            if (pathModel.IsString() == false)
+            {
+                throw new Exception("Expected path");
+            }
+
+            var exists = File.Exists((string)pathModel);
+            return exists ? 1 : 0;
         }
 
         throw new Exception("AST node error");
@@ -971,7 +1004,7 @@ public class Interpreter
     {
         anonymousRefBoxDefinitionNames.Add($"anonymous_{Guid.NewGuid()}");
         var rawFields = callReturnValue.Where(i => i.Value.Value != null);
-        var fields = rawFields.Select(rf => new RefBoxAccessModifier<AssignmentNode>(new(rf.Key.VariableName, new AnonymousValue(rf.Value.Value)), rf.Value.Modifier, false)).ToList();
+        var fields = rawFields.Select(rf => new RefBoxAccessModifier<AssignmentNode>(new(rf.Key.VariableName, new AnonymousValueNode(rf.Value.Value)), rf.Value.Modifier, false)).ToList();
 
         var rawFunc = callReturnValue.Where(i => i.Value.Function != null);
         var functions = rawFunc.Select(rf => new RefBoxAccessModifier<FunctionNode>(new(rf.Key.FunctionKey.FunctionName, rf.Value.Function.Parameters, rf.Value.Function.Body), rf.Value.Modifier, false)).ToList();
