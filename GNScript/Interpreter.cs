@@ -570,7 +570,7 @@ public class Interpreter
                 }
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToArray))
                 {
-                    return ExecutionModel.FromObject(stringValue.ToList());
+                    return ExecutionModel.FromObject(stringValue.ToList().ConvertAll(c => c.ToString()));
                 }
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Length))
                 {

@@ -1,7 +1,4 @@
-﻿using System.Linq.Expressions;
-using System.Xml.Linq;
-
-namespace GNScript;
+﻿namespace GNScript;
 public class Parser
 {
     private readonly List<Token> _tokens;
@@ -25,7 +22,7 @@ public class Parser
 
             var result = ParseStatement();
 
-             if (startNode == null)
+            if (startNode == null)
             {
                 node = result;
                 startNode = node;
@@ -451,25 +448,59 @@ public class Parser
                 _position++;
 
                 AstNode result = expression;
-                while (_tokens[_position].Type == TokenType.Dot || _tokens[_position].Type == TokenType.Colon) // we can call a function or property for anonymous refbox instance
+                while (_tokens[_position].Type == TokenType.Dot) // we can call a function for anonymous refbox instance
                 {
-                    if (_tokens[_position].Type == TokenType.Dot)
-                    {
-                        _position++; // .
-                        var functioncall = ParseFunctionCall() as FunctionCallNode;
+                    _position++; // .
+                    var functionCallOrProperty = ParseFunctionCall();
+                    var functioncall = functionCallOrProperty as FunctionCallNode;
+                    var isProperty = false;
+                    var propertyAccesses = new List<PropertyAccessNode>();
 
-                        if (result is RefBoxInstanceNode refBoxInstanceNode)
+                    if (functionCallOrProperty is PropertyAccessNode propertyAccessNode)
+                    {
+                        propertyAccesses.Add(propertyAccessNode);
+                        AstNode node = propertyAccessNode.Node;
+                        while (node is not FunctionCallNode)
                         {
-                            result = RefBoxFunctionCallNode.CreateAnonymousInstanceFunctionCall(refBoxInstanceNode, functioncall);
+                            var property = node as PropertyAccessNode;
+                            node = property.Node;
+
+                            if (property != null)
+                            {
+                                propertyAccesses.Add(property);
+                            }
                         }
-                        else if (result is RefBoxFunctionCallNode refBoxFunctionCallNode)
-                        {
-                            result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, functioncall);
-                        }
+
+                        functioncall = node as FunctionCallNode;
+                        isProperty = true;
                     }
-                    else
-                    {
 
+                    if (result is RefBoxInstanceNode refBoxInstanceNode)
+                    {
+                        result = RefBoxFunctionCallNode.CreateAnonymousInstanceFunctionCall(refBoxInstanceNode, functioncall);
+                    }
+                    else if (result is RefBoxFunctionCallNode refBoxFunctionCallNode)
+                    {
+                        result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, functioncall);
+                    }
+
+                    if (isProperty)
+                    {
+                        propertyAccesses.Reverse();
+                        AstNode propertyAccessResult = null;
+                        foreach (var propertyAccess in propertyAccesses)
+                        {
+                            if (propertyAccessResult == null)
+                            {
+                                propertyAccessResult = new PropertyAccessNode(result, propertyAccess.PropertyName, propertyAccess.Arguments);
+                            }
+                            else
+                            {
+                                propertyAccessResult = new PropertyAccessNode(propertyAccessResult, propertyAccess.PropertyName, propertyAccess.Arguments);
+                            }
+                        }
+
+                        return propertyAccessResult;
                     }
                 }
                 return result;
@@ -548,28 +579,66 @@ public class Parser
             throw new Exception("Expected field name");
         }
 
-        var functioncall = ParseFunctionCall() as FunctionCallNode;
+        var functionCallOrProperty = ParseFunctionCall();
+        var functioncall = functionCallOrProperty as FunctionCallNode;
+
+        if (functioncall == null)
+            return functionCallOrProperty;
 
         AstNode result = RefBoxFunctionCallNode.CreateVariableFunctionCall(instanceName, functioncall);
-        while (_tokens[_position].Type == TokenType.Dot || _tokens[_position].Type == TokenType.Colon) // we can call a function or property for anonymous refbox instance
+        while (_tokens[_position].Type == TokenType.Dot) // we can call a function for anonymous refbox instance
         {
-            if (_tokens[_position].Type == TokenType.Dot)
-            {
-                _position++; // .
-                var nextFunctioncall = ParseFunctionCall() as FunctionCallNode;
+            _position++; // .
+            var nextFunctionCallOrProperty = ParseFunctionCall();
+            var nextFunctioncall = nextFunctionCallOrProperty as FunctionCallNode;
+            var isProperty = false;
+            var propertyAccesses = new List<PropertyAccessNode>();
 
-                if (result is RefBoxInstanceNode refBoxInstanceNode)
+            if (nextFunctionCallOrProperty is PropertyAccessNode propertyAccessNode)
+            {
+                propertyAccesses.Add(propertyAccessNode);
+                AstNode node = propertyAccessNode.Node;
+                while (node is not FunctionCallNode)
                 {
-                    result = RefBoxFunctionCallNode.CreateAnonymousInstanceFunctionCall(refBoxInstanceNode, nextFunctioncall);
+                    var property = node as PropertyAccessNode;
+                    node = property.Node;
+
+                    if (property != null)
+                    {
+                        propertyAccesses.Add(property);
+                    }
                 }
-                else if (result is RefBoxFunctionCallNode refBoxFunctionCallNode)
-                {
-                    result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, nextFunctioncall);
-                }
+
+                nextFunctioncall = node as FunctionCallNode;
+                isProperty = true;
             }
-            else
-            {
 
+            if (result is RefBoxInstanceNode refBoxInstanceNode)
+            {
+                result = RefBoxFunctionCallNode.CreateAnonymousInstanceFunctionCall(refBoxInstanceNode, nextFunctioncall);
+            }
+            else if (result is RefBoxFunctionCallNode refBoxFunctionCallNode)
+            {
+                result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, nextFunctioncall);
+            }
+
+            if (isProperty)
+            {
+                propertyAccesses.Reverse();
+                AstNode propertyAccessResult = null;
+                foreach (var propertyAccess in propertyAccesses)
+                {
+                    if (propertyAccessResult == null)
+                    {
+                        propertyAccessResult = new PropertyAccessNode(result, propertyAccess.PropertyName, propertyAccess.Arguments);
+                    }
+                    else
+                    {
+                        propertyAccessResult = new PropertyAccessNode(propertyAccessResult, propertyAccess.PropertyName, propertyAccess.Arguments);
+                    }
+                }
+
+                return propertyAccessResult;
             }
         }
         return result;
@@ -652,7 +721,7 @@ public class Parser
             throw new Exception("Expected left bracket");
         }
 
-        _position++; // |
+        _position++; // .
 
         var property = _tokens[_position].Value;
 
@@ -719,7 +788,7 @@ public class Parser
                 accessModifier = Enum.GetName(_tokens[_position].Type);
                 _position++;
             }
-            
+
             if (_tokens[_position].Type == TokenType.Abstract)
             {
                 isAbstractFunction = true;
