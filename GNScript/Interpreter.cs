@@ -576,6 +576,21 @@ public class Interpreter
                 {
                     return ExecutionModel.FromObject(stringValue.Length);
                 }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Split))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 0 && propertyNode.Arguments.Count != 1, "Expected 0 or 1 arguments");
+
+                    if (propertyNode.Arguments.Count == 1)
+                    {
+                        var valueModel = Visit(propertyNode.Arguments[0]);
+                        ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected string");
+                        var splitValue = (string)valueModel;
+
+                        return ExecutionModel.FromObject(stringValue.Split(splitValue).Cast<object>().ToList());
+                    }
+
+                    return ExecutionModel.FromObject(stringValue.Split().Cast<object>().ToList());
+                }
             }
 
             var refBoxProperties = EnumHelpers.GetEnumNamesLowercase<BoxProperty>();
@@ -759,7 +774,6 @@ public class Interpreter
         {
             Dictionary<FunctionVariableDictionaryKey, RefBoxElement> instance = null;
 
-
             if (string.IsNullOrEmpty(refBoxFunctionCallNode.InstanceName) == false)
             {
                 instance = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel);
@@ -781,11 +795,6 @@ public class Interpreter
 
                 var firstCall = callChain.ToList()[0];
                 callChain = new Stack<AstNode>(callChain.ToList().Skip(1));
-
-                //if ((firstCall as RefBoxFunctionCallNode).AnonymousRefBoxInstanceNode == null)
-                //{
-                //    throw new Exception("Invalid ref box instance");
-                //}
 
                 var firstCallReturnValue = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)Visit(firstCall).Value;
 
@@ -820,9 +829,6 @@ public class Interpreter
                 return ExecutionModel.FromObject(lastCallValue);
             }
             
-            //var instance = refBoxFunctionCallNode.AnonymousRefBoxInstanceNode == null ?
-            //    (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(refBoxFunctionCallNode.InstanceName, _scopeLevel) :
-            //    Visit(refBoxFunctionCallNode.AnonymousRefBoxInstanceNode).Value as Dictionary<FunctionVariableDictionaryKey, RefBoxElement>;
             var foundFunction = instance.TryGetValue(new(refBoxFunctionCallNode.FunctionCallNode), out var element);
 
             if (foundFunction == false)

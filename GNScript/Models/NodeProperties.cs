@@ -23,7 +23,8 @@ public enum StringProperty
     ToUpper,
     Reverse,
     ToArray,
-    Length
+    Length,
+    Split
 }
 
 public enum BoxProperty
