@@ -30,5 +30,6 @@ public enum BoxProperty
 {
     IsInstanceOf,
     HasField,
-    HasFunction
+    HasFunction,
+    ReflectionSetField,
 }

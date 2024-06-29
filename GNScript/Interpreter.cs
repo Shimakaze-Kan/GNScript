@@ -598,14 +598,37 @@ public class Interpreter
                 }
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.HasField))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1 && propertyNode.Arguments.Count != 2, "Expected 1 or 2 arguments");
                     var valueModel = Visit(propertyNode.Arguments[0]);
                     ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected field name");
                     var fieldName = (string)valueModel;
+                    var showGuarded = 0;
 
-                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    if (propertyNode.Arguments.Count == 2)
+                    {
+                        valueModel = Visit(propertyNode.Arguments[1]);
+                        ExceptionsHelper.FailIfFalse(valueModel.IsInt(), "Expected bool");
+
+                        showGuarded = (int)valueModel;
+                    }
+
+                    var instanceName = string.Empty;
+
+                    if (propertyNode.Node is VariableNode variable)
+                    {
+                        instanceName = variable.Name;
+                    }
+                    else if (propertyNode.Node is RefBoxFunctionCallNode refBoxFunctionCallNode)
+                    {
+                        instanceName = refBoxFunctionCallNode.InstanceName;
+                        if (string.IsNullOrEmpty(instanceName)) // it means it's anonymous instance
+                        {
+                            throw new Exception("HasField property cannot be invoked on anonymous instance");
+                        }
+                    }
+
                     var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
-                    var instanceFields = refBox.Keys.Select(k => k.VariableName).ToList();
+                    var instanceFields = refBox.Where(kv => showGuarded == 1 ? true : kv.Value.Modifier == AccessModifier.Exposed).Select(kv => kv.Key).Select(k => k.VariableName);
 
                     return instanceFields.Contains(fieldName) ? 1 : 0;
                 }
@@ -622,9 +645,27 @@ public class Interpreter
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
                     var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
-                    var instanceFuncs = refBox.Keys.Select(k => k.FunctionKey).ToList();
+                    var instanceFuncs = refBox.Keys.Where(k => k.FunctionKey != null).Select(k => k.FunctionKey).ToList();
 
                     return instanceFuncs.Any(f => f.FunctionName == functionName && f.FunctionParameterCount == parametersCount) ? 1 : 0;
+                }
+                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.ReflectionSetField))
+                {
+                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected field name");
+                    var fieldName = (string)valueModel;
+
+                    valueModel = Visit(propertyNode.Arguments[1]);
+                    var newValuemodel = valueModel.Value;
+
+                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
+
+                    var modifier = refBox[new(fieldName)].Modifier;
+                    refBox[new(fieldName)] = RefBoxElement.CreateFieldElement(newValuemodel, modifier);
+
+                    return ExecutionModel.Empty;
                 }
             }
 
