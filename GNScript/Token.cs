@@ -48,6 +48,7 @@ public enum TokenType
     ReadFile,
     ReadWholeFile,
     FileExists,
+    Const,
 
     #region Access Modifiers
     Guarded,

@@ -243,6 +243,8 @@ public class Lexer
                 return new Token(TokenType.ReadWholeFile, value);
             case "fileExists":
                 return new Token(TokenType.FileExists, value);
+            case "const":
+                return new Token(TokenType.Const, value);
             case "wuwei":
             case "void":
                 return new Token(TokenType.Void, "void");

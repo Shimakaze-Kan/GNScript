@@ -238,18 +238,21 @@ public class RefBoxNode : AstNode
     public List<RefBoxAccessModifier<FunctionNode>> Functions { get; }
     public bool IsAbstract { get; }
     public string BaseClassName { get; }
+    public bool IsConst { get; }
 
     public RefBoxNode(string name,
         bool isAbstract,
         List<RefBoxAccessModifier<AssignmentNode>> fields,
         List<RefBoxAccessModifier<FunctionNode>> functions,
-        string baseClassName)
+        string baseClassName,
+        bool isConst = false)
     {
         Name = name;
         Fields = fields;
         Functions = functions;
         IsAbstract = isAbstract;
         BaseClassName = baseClassName;
+        IsConst = isConst;
     }
 }
 

@@ -827,6 +827,13 @@ public class Parser
 
         _position++; // RefBox
 
+        var isConst = false;
+        if (_tokens[_position].Type == TokenType.Const)
+        {
+            isConst = true;
+            _position++; // const
+        }
+
         var isAbstract = false;
         if (_tokens[_position].Type == TokenType.Abstract)
         {
@@ -908,7 +915,7 @@ public class Parser
 
         _position++; // end
 
-        return new RefBoxNode(refBoxName, isAbstract, fields, functions, baseClassName);
+        return new RefBoxNode(refBoxName, isAbstract, fields, functions, baseClassName, isConst);
     }
 
     private AstNode ParseRefBoxInstance()

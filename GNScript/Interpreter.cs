@@ -733,6 +733,11 @@ public class Interpreter
         }
         else if (node is RefBoxNode refBoxNode)
         {
+            if (_refBoxDefinitions.TryGetValue(refBoxNode.Name, out var existingRefBoxDefinition))
+            {
+                ExceptionsHelper.FailIfTrue(existingRefBoxDefinition.IsConst, $"Ref box '{existingRefBoxDefinition.Name}' is const, cannot create ref box definition with the same name");
+            }
+
             var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Element.Variable);
             ExceptionsHelper.FailIfFalse(fieldNames.Count == fieldNames.Distinct().Count(), "Field name duplication");
 
