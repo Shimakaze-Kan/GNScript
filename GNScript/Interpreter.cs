@@ -297,13 +297,23 @@ public class Interpreter
         else if (node is PrintInlineNode printInlineNode)
         {
             var model = Visit(printInlineNode.Expression);
-            Console.Write(model.ToPrintable());
+
+            if (model.IsString())
+                Console.Write((string)model);
+            else
+                Console.Write(model.ToPrintable());
+
             return ExecutionModel.Empty;
         }
         else if (node is PrintNode printNode)
         {
             var model = Visit(printNode.Expression);
-            Console.WriteLine(model.ToPrintable());
+
+            if (model.IsString())
+                Console.WriteLine((string)model);
+            else
+                Console.WriteLine(model.ToPrintable());
+
             return ExecutionModel.Empty;
         }
         else if (node is FunctionNode functionNode)
