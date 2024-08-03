@@ -36,11 +36,25 @@ As a first step, I recommend running the examples located in the `examples` fold
 
 <ol>
 <li><a href="#variables">Variables and Scopes</a></li>
+<li><a href="#variable-types">Variable Types</a></li>
+<ul>
+<li><a href="#variable-types-int-string">Int and String</a></li>
+<li><a href="#variable-types-Array">Array</a></li>
+<li><a href="#variable-types-RefBox">RefBox</a></li>
+<li><a href="#variable-types-Void">Void</a></li>
+</ul>
 <li><a href="#state-interpreter">Displaying the State of the Interpreter</a></li>
 <li><a href="#conditional-statements">Conditional Statements</a></li>
 <li><a href="#loops">Loops</a></li>
 <li><a href="#arrays">Arrays</a></li>
 <li><a href="#functions">Functions</a></li>
+<li><a href="#refboxes">Refboxes</a></li>
+<ul>
+<li><a href="#refboxes-Inheritance">Inheritance</a></li>
+<li><a href="#refboxes-Abstract-RefBoxes">Abstract RefBoxes</a></li>
+<li><a href="#refboxes-Const-RefBoxes">Const RefBoxes</a></li>
+<li><a href="#refboxes-Passing-Data">Passing Data</a></li>
+</ul>
 </ol>
 
 <h3 id="variables">Variables and Scopes</h3>
@@ -76,21 +90,21 @@ inside loop: 4
 i: 20
 ```
 
-### Variable Types
+<h3 id="variable-types">Variable Types</h3>
 
-#### Int and String
+<h4 id="variable-types-int-string">Int and String</h4>
 
 `Int` and `String` are self-explanatory value types. A `String` cannot change its value once created; it is necessary to create a new `String` to modify the content.
 
-#### Array
+<h4 id="variable-types-Array">Array</h4>
 
 `Array` is a value type and cannot change its value directly. To modify an element in an array, you need to create a new array with the desired changes.
 
-#### RefBox
+<h4 id="variable-types-RefBox">RefBox</h4>
 
 `RefBox` is a reference type that can store variables and functions. In other languages, this is often referred to as a class. Variables and functions within a `RefBox` can have access modifiers.
 
-#### Void
+<h4 id="variable-types-Void">Void</h4>
 
 If we assign the result of a function returning `void` to a variable, the variable will be of type `void`. This type is mostly useless but was necessary for the consistency of the language.
 
@@ -223,7 +237,9 @@ function myFunction(a, b)
     print b + " is bigger than " + a
     return void
   else
-    return b
+    if a > b
+      return a
+    end
   end
   return "they are equal"
 ```
@@ -240,4 +256,178 @@ Output:
 > print myFunction(2, 2)
 
 2
+```
+
+Even though the language is dynamically typed, sometimes we need to ensure that a variable is of the correct type. For this purpose, we can use the extension `:type`, which returns the type as a string, allowing us to compare it. Below is an example function that calculates the sum of an array. If the input is not an array, an exception is thrown.
+
+```
+function sumArray(arr)
+  if arr:type:tolower <> "array"
+    throw "Expected array"
+  end
+  sum = 0
+  for i = 0; i < arr:length; i = i + 1
+    sum = sum + arr[i]
+  end
+return sum
+```
+
+<h3 id="refboxes">Refboxes</h3>
+
+RefBoxes are reference data types that can contain fields and functions with one of two access modifiers: `exposed` and `guarded`. The first one, `exposed`, is the default (i.e., if you don't specify anything, it will be exposed) and allows access to the RefBox instance from outside (equivalent to public in other languages). The second one, `guarded`, means that access is restricted to within the RefBox itself and its inheriting RefBoxes.
+
+The declaration starts with the keyword `refbox`, followed by the name and the body of the RefBox, which ends with the keyword end. We can create refbox instance using `create` keyword.
+
+```
+refbox myRefbox
+  guarded x = 1
+  exposed y = 2
+  function printX()
+    print x
+  return void
+end
+```
+
+Instance:
+
+```
+> myInstance = create myRefbox
+
+> myInstance.printX()
+
+1
+> print myInstance.x
+
+Error: Cannot access guarded field
+> myInstance.y = 100
+```
+
+<h4 id="refboxes-Inheritance">Inheritance</h4>
+
+Every RefBox can be inherited. If the child RefBox already has a function or field with the same name as the base RefBox, the elements of the RefBox will be overridden.
+
+```
+refbox base
+  x = 10
+  function fun()
+    print "I'm from base refbox"
+  return void
+end
+
+refbox child : base
+  y = "dddd"
+  function fun()
+    print "I'm from child refbox"
+  return void
+end
+```
+
+Dump:
+
+```
+> dump
+[Variables]
+  No variables to display.
+
+[Functions]
+  No functions to display.
+
+[RefBoxes]
+  base : {[Exposed] x, [Exposed] fun <- ()}
+  child : {[Exposed] y, [Exposed] x, [Exposed] fun <- ()} [base: base]
+```
+
+Overwritten function:
+
+```
+> child = create child
+
+> child.fun()
+
+I'm from child refbox
+```
+
+<h4 id="refboxes-Abstract-RefBoxes">Abstract RefBoxes</h4>
+
+A RefBox can be `abstract`, which can be achieved by adding the keyword `abstract` after the refbox keyword during declaration. Such RefBoxes can define `abstract` functions that must be overridden in the inheriting class. Note that the definition of an `abstract` function does not end with the keyword return or end and does not contain a function body.
+
+```
+refbox abstract abstr
+  f = 122
+  abstract function test(x)
+end
+```
+
+Inheritance:
+
+```
+> refbox noOverwritten : abstr
+end
+
+Error: Class cannot have not overrided functions: test
+> refbox noOverwritten : abstr
+end
+
+Error: Class cannot have not overrided functions: test
+> refbox overwritten : abstr
+  function test(x)
+  return 123
+end
+```
+
+<h4 id="refboxes-Const-RefBoxes">Const RefBoxes</h4>
+
+RefBoxes can be `const`, meaning that any subsequent attempt to declare a RefBox with the same name will fail. By default, like other data types, re-declaring a RefBox would overwrite the previous one. Therefore, the `const` keyword can be useful when writing scripts intended to be imported into other programs, to prevent the programmer from accidentally overwriting the definition in their program.
+
+```
+refbox const myConstRef
+  f = 1234
+  function test()
+    print "You can't redefine me"
+  return void
+end
+```
+
+Redefining:
+
+```
+> refbox myConstRef
+end
+
+Error: Ref box 'myConstRef' is const, cannot create ref box definition with the same name
+```
+
+<h4 id="refboxes-Passing-Data">Passing Data</h4>
+
+Since RefBoxes are reference types, they can be used to pass data not only via the `return` keyword but also as parameters.
+
+```
+refbox keyValuePair
+  key = 0
+  value = 0
+end
+
+function findValue(kv)
+  arr = [["a", 97], ["b", 98], ["c", 99], ["d", 100], ["e", 101], ["f", 102]]
+  for i = 0; i < arr:length; i = i + 1
+    if arr[i][0] == kv.key
+      kv.value = arr[i][1]
+      return void
+    end
+  end
+return void
+```
+
+Usage:
+
+```
+> kv = create keyValuePair
+
+> kv.key = "e"
+
+> findValue(kv)
+
+> print kv.value
+
+101
 ```
