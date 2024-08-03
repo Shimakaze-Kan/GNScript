@@ -495,7 +495,7 @@ public class Interpreter
                 }
                 else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.ToString))
                 {
-                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 0 && extensionNode.Arguments.Count != 0, "Expected 0 or 1 arguments");
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 0 && extensionNode.Arguments.Count != 1, "Expected 0 or 1 arguments");
 
                     if (extensionNode.Arguments.Count == 1)
                     {
