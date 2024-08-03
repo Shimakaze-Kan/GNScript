@@ -349,7 +349,7 @@ I'm from child refbox
 
 <h4 id="refboxes-Abstract-RefBoxes">Abstract RefBoxes</h4>
 
-A RefBox can be `abstract`, which can be achieved by adding the keyword `abstract` after the refbox keyword during declaration. Such RefBoxes can define `abstract` functions that must be overridden in the inheriting class. Note that the definition of an `abstract` function does not end with the keyword return or end and does not contain a function body.
+A RefBox can be `abstract`, which can be achieved by adding the keyword `abstract` after the refbox keyword during declaration. Such RefBoxes can define `abstract` functions that must be overridden in the inheriting class. Note that the definition of an `abstract` function does not end with the keyword `return` or `end` and does not contain a function body.
 
 ```
 refbox abstract abstr

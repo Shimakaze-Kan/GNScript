@@ -85,7 +85,7 @@ public class Interpreter
                     case TokenType.NotEqual:
                         return leftValueInt != rightValueInt ? 1 : 0;
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else if (leftValue.IsInt() && rightValue.IsString())
@@ -105,7 +105,7 @@ public class Interpreter
                     case TokenType.NotEqual:
                         return leftValueInt != rightValueString.Length ? 1 : 0;
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else if (leftValue.IsString() && rightValue.IsInt())
@@ -131,7 +131,7 @@ public class Interpreter
                     case TokenType.NotEqual:
                         return leftValueString.Length != rightValueInt ? 1 : 0;
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else if (leftValue.IsArray() && rightValue.IsInt())
@@ -167,7 +167,7 @@ public class Interpreter
                     case TokenType.NotEqual:
                         return leftValueArray.Count != rightValueInt ? 1 : 0;
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else if (leftValue.IsInt() && rightValue.IsArray())
@@ -180,7 +180,7 @@ public class Interpreter
                         var extenedArray = rightValueArray.Prepend(leftValueInt).ToList();
                         return ExecutionModel.FromObject(extenedArray);
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else if (leftValue.IsString() && rightValue.IsArray())
@@ -193,7 +193,7 @@ public class Interpreter
                         var extenedArray = rightValueArray.Prepend(leftValueString).ToList();
                         return ExecutionModel.FromObject(extenedArray);
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else if (leftValue.IsArray() && rightValue.IsString())
@@ -206,7 +206,7 @@ public class Interpreter
                         var extenedArray = leftValueArray.Append(rightValueString).ToList();
                         return ExecutionModel.FromObject(extenedArray);
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else if (leftValue.IsArray() && rightValue.IsArray())
@@ -256,7 +256,7 @@ public class Interpreter
                     case TokenType.NotEqual:
                         return Enumerable.SequenceEqual(leftValueArray, rightValueArray) ? 0 : 1;
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
             else
@@ -290,7 +290,7 @@ public class Interpreter
                     case TokenType.NotEqual:
                         return leftValueString.CompareTo(rightValueString) != 0 ? 1 : 0;
                     default:
-                        throw new Exception($"Nieznany operator: {binaryNode.Operator.Type}");
+                        throw new Exception($"Unknown operator: {binaryNode.Operator.Type}");
                 }
             }
         }
@@ -650,11 +650,15 @@ public class Interpreter
 
                     var instanceName = ((VariableNode)propertyNode.Node).Name;
                     var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
-                    var instanceFields = refBox.Keys.Select(k => k.VariableName).ToList();
+                    var instanceFields = refBox.Keys.Select(k => k.VariableName).Where(v => string.IsNullOrEmpty(v) == false).ToList();
                     var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Element.Variable);
 
+                    var instanceFunctions = refBox.Where(v => v.Key.FunctionKey != null).Select(f => f.Key.FunctionKey).ToList();
+                    var definitionFunctions = _refBoxDefinitions[refBoxName].Functions.ConvertAll(f => new FunctionDictionaryKey(f.Element));
+
                     var sameFields = Enumerable.SequenceEqual(definitionFields.Order(), instanceFields.Order());
-                    return sameFields ? 1 : 0;
+                    var sameFunctions = Enumerable.SequenceEqual(definitionFunctions.Order(), instanceFunctions.Order());
+                    return sameFields && sameFunctions ? 1 : 0;
                 }
                 else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.HasField))
                 {
@@ -745,7 +749,7 @@ public class Interpreter
         {
             if (_refBoxDefinitions.TryGetValue(refBoxNode.Name, out var existingRefBoxDefinition))
             {
-                ExceptionsHelper.FailIfTrue(existingRefBoxDefinition.IsConst, $"Ref box '{existingRefBoxDefinition.Name}' is const, cannot create ref box definition with the same name");
+                ExceptionsHelper.FailIfTrue(existingRefBoxDefinition.IsConst, $"Refbox '{existingRefBoxDefinition.Name}' is const, cannot create ref box definition with the same name");
             }
 
             var fieldNames = refBoxNode.Fields.ConvertAll(f => f.Element.Variable);
@@ -778,7 +782,7 @@ public class Interpreter
 
             var notOverridedAbstractFunctions = refBoxNode.Functions.Where(f => f.IsAbstract);
             ExceptionsHelper.FailIfTrue(notOverridedAbstractFunctions.Count() != 0 && refBoxNode.IsAbstract == false,
-                $"Class cannot have not overrided functions: {string.Join(", ", notOverridedAbstractFunctions.Select(f => f.Element.Name))}");
+                $"Refbox cannot have not overrided functions: {string.Join(", ", notOverridedAbstractFunctions.Select(f => f.Element.Name))}");
 
             _refBoxDefinitions[refBoxNode.Name] = refBoxNode;
             return ExecutionModel.Empty;
@@ -787,7 +791,7 @@ public class Interpreter
         {
             var refBoxDefinition = _refBoxDefinitions[refBoxInstanceNode.RefBoxName];
             var instance = new Dictionary<FunctionVariableDictionaryKey, RefBoxElement>();
-            ExceptionsHelper.FailIfTrue(refBoxDefinition.IsAbstract, "Cannot make instance of abstract ref box");
+            ExceptionsHelper.FailIfTrue(refBoxDefinition.IsAbstract, "Cannot make instance of abstract refbox");
 
             foreach (var field in refBoxDefinition.Fields)
             {

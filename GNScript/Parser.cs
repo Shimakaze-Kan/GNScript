@@ -1,6 +1,4 @@
-﻿using System.Xml.Linq;
-
-namespace GNScript;
+﻿namespace GNScript;
 public class Parser
 {
     private readonly List<Token> _tokens;

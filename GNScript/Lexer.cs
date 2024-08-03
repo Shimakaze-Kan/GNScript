@@ -182,7 +182,7 @@ public class Lexer
                     }
                     else
                     {
-                        throw new Exception($"Nieznany znak: {current}");
+                        throw new Exception($"Unknown character: {current}");
                     }
                     break;
             }

@@ -6,39 +6,6 @@ internal class Program
     private static Interpreter Interpreter;
     private static void Main(string[] args)
     {
-        //string code = @"
-        //    function add(a, b)
-        //        return a + b
-
-        //    function mul(a, b)
-        //        return a * b
-
-        //    y = input
-        //    if y <> 1
-        //        x = add(y, 3)
-        //        x = mul(x,10)
-        //    else
-        //        x = mul(5,3)
-        //    end
-
-        //    print x
-
-        //    count = 0
-        //    while count < 5
-        //        print count
-        //        count = count + 1
-        //    end
-
-        //    print ""---------------""
-
-        //    for i = 0; i < 3; i = i + 1
-        //        print i
-        //    end
-
-        //    myString = ""Hello, world!""
-        //    print myString
-        //";
-
         Clear();
         while (true)
         {

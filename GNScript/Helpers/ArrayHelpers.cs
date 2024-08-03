@@ -4,17 +4,6 @@ using System.Collections;
 namespace GNScript.Helpers;
 public static class ArrayHelpers
 {
-    public static string ToPrintableArray(this ExecutionModel executionModel)
-    {
-        if (executionModel.IsEmptyValue)
-            return string.Empty;
-
-        if (executionModel.IsArray() == false)
-            return string.Empty;
-
-        return ConvertListToString((List<object>)executionModel);
-    }
-
     private static string ConvertListToString(object? value)
     {
         if (value == null) 
