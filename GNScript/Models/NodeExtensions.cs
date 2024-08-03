@@ -1,5 +1,5 @@
 ﻿namespace GNScript.Models;
-public enum ArrayProperty
+public enum ArrayExtension
 {
     Length,
     Reverse,
@@ -12,12 +12,12 @@ public enum ArrayProperty
     Has
 }
 
-public enum CommonValueProperty
+public enum CommonValueExtension
 {
     Type
 }
 
-public enum StringProperty
+public enum StringExtension
 {
     ToLower,
     ToUpper,
@@ -30,7 +30,7 @@ public enum StringProperty
     CanConvertToInt
 }
 
-public enum BoxProperty
+public enum BoxExtension
 {
     IsInstanceOf,
     HasField,
@@ -38,7 +38,7 @@ public enum BoxProperty
     ReflectionSetField,
 }
 
-public enum IntProperty
+public enum IntExtension
 {
     ToString
 }

@@ -170,7 +170,7 @@ public class InputNode : AstNode
 
 public class ArrayNode : AstNode
 {
-    public static string[] Properties => EnumHelpers.GetEnumNamesLowercase<ArrayProperty>();
+    public static string[] Extensions => EnumHelpers.GetEnumNamesLowercase<ArrayExtension>();
     public List<AstNode> Elements { get; }
 
     public ArrayNode(List<AstNode> elements)
@@ -217,16 +217,16 @@ public class ArrayRemoveNode : AstNode
     }
 }
 
-public class PropertyAccessNode : AstNode
+public class ExtensionAccessNode : AstNode
 {
     public AstNode Node { get; }
-    public string PropertyName { get; }
+    public string ExtensionName { get; }
     public List<AstNode> Arguments { get; }
 
-    public PropertyAccessNode(AstNode node, string propertyName, List<AstNode> arguments)
+    public ExtensionAccessNode(AstNode node, string extensionName, List<AstNode> arguments)
     {
         Node = node;
-        PropertyName = propertyName;
+        ExtensionName = extensionName;
         Arguments = arguments;
     }
 }

@@ -308,9 +308,9 @@ public class Parser
         _position++; // Skip right parenthesis
         var functionCallNode = new FunctionCallNode(functionName, arguments);
 
-        if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+        if (_tokens[_position].Type == TokenType.Colon) // there can be extension after function call
         {
-            return ParsePropertyAccess(functionCallNode);
+            return ParseExtensionAccess(functionCallNode);
         }
 
         return functionCallNode;
@@ -381,7 +381,7 @@ public class Parser
 
                 if (_tokens[_position].Type == TokenType.Colon)
                 {
-                    return ParsePropertyAccess(numberNode);
+                    return ParseExtensionAccess(numberNode);
                 }
 
                 return numberNode;
@@ -391,7 +391,7 @@ public class Parser
 
                 if (_tokens[_position].Type == TokenType.Colon)
                 {
-                    return ParsePropertyAccess(stringNode);
+                    return ParseExtensionAccess(stringNode);
                 }
 
                 return stringNode;
@@ -409,7 +409,7 @@ public class Parser
                 else if (_tokens[_position + 1].Type == TokenType.Colon)
                 {
                     _position++;
-                    return ParsePropertyAccess(new VariableNode(token.Value));
+                    return ParseExtensionAccess(new VariableNode(token.Value));
                 }
                 else if (_tokens[_position + 1].Type == TokenType.Dot)
                 {
@@ -426,9 +426,9 @@ public class Parser
                         node = refBoxFieldAccess;
                     }
 
-                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after RefBox field/function access
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be extension after RefBox field/function access
                     {
-                        return ParsePropertyAccess(node);
+                        return ParseExtensionAccess(node);
                     }
 
                     return node;
@@ -451,28 +451,28 @@ public class Parser
                 while (_tokens[_position].Type == TokenType.Dot) // we can call a function for anonymous refbox instance
                 {
                     _position++; // .
-                    var functionCallOrProperty = ParseFunctionCall();
-                    var functioncall = functionCallOrProperty as FunctionCallNode;
-                    var isProperty = false;
-                    var propertyAccesses = new List<PropertyAccessNode>();
+                    var functionCallOrExtension = ParseFunctionCall();
+                    var functioncall = functionCallOrExtension as FunctionCallNode;
+                    var isExtension = false;
+                    var extensionAccesses = new List<ExtensionAccessNode>();
 
-                    if (functionCallOrProperty is PropertyAccessNode propertyAccessNode)
+                    if (functionCallOrExtension is ExtensionAccessNode extensionAccessNode)
                     {
-                        propertyAccesses.Add(propertyAccessNode);
-                        AstNode node = propertyAccessNode.Node;
+                        extensionAccesses.Add(extensionAccessNode);
+                        AstNode node = extensionAccessNode.Node;
                         while (node is not FunctionCallNode)
                         {
-                            var property = node as PropertyAccessNode;
-                            node = property.Node;
+                            var extension = node as ExtensionAccessNode;
+                            node = extension.Node;
 
-                            if (property != null)
+                            if (extension != null)
                             {
-                                propertyAccesses.Add(property);
+                                extensionAccesses.Add(extension);
                             }
                         }
 
                         functioncall = node as FunctionCallNode;
-                        isProperty = true;
+                        isExtension = true;
                     }
 
                     if (result is RefBoxInstanceNode refBoxInstanceNode)
@@ -484,23 +484,23 @@ public class Parser
                         result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, functioncall);
                     }
 
-                    if (isProperty)
+                    if (isExtension)
                     {
-                        propertyAccesses.Reverse();
-                        AstNode propertyAccessResult = null;
-                        foreach (var propertyAccess in propertyAccesses)
+                        extensionAccesses.Reverse();
+                        AstNode extensionAccessResult = null;
+                        foreach (var extensionAccess in extensionAccesses)
                         {
-                            if (propertyAccessResult == null)
+                            if (extensionAccessResult == null)
                             {
-                                propertyAccessResult = new PropertyAccessNode(result, propertyAccess.PropertyName, propertyAccess.Arguments);
+                                extensionAccessResult = new ExtensionAccessNode(result, extensionAccess.ExtensionName, extensionAccess.Arguments);
                             }
                             else
                             {
-                                propertyAccessResult = new PropertyAccessNode(propertyAccessResult, propertyAccess.PropertyName, propertyAccess.Arguments);
+                                extensionAccessResult = new ExtensionAccessNode(extensionAccessResult, extensionAccess.ExtensionName, extensionAccess.Arguments);
                             }
                         }
 
-                        return propertyAccessResult;
+                        return extensionAccessResult;
                     }
                 }
                 return result;
@@ -513,7 +513,7 @@ public class Parser
                 }
                 else if (_tokens[_position].Type == TokenType.Colon)
                 {
-                    return ParsePropertyAccess(array);
+                    return ParseExtensionAccess(array);
                 }
 
                 return array;
@@ -538,9 +538,9 @@ public class Parser
 
                     var node = new ReadFileNode(path);
 
-                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be extension after function call
                     {
-                        return ParsePropertyAccess(node);
+                        return ParseExtensionAccess(node);
                     }
 
                     return node;
@@ -564,9 +564,9 @@ public class Parser
 
                     var node = new ReadWholeFileNode(path);
 
-                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be extension after function call
                     {
-                        return ParsePropertyAccess(node);
+                        return ParseExtensionAccess(node);
                     }
 
                     return node;
@@ -590,9 +590,9 @@ public class Parser
 
                     var node = new FileExistsNode(path);
 
-                    if (_tokens[_position].Type == TokenType.Colon) // there can be property after function call
+                    if (_tokens[_position].Type == TokenType.Colon) // there can be extension after function call
                     {
-                        return ParsePropertyAccess(node);
+                        return ParseExtensionAccess(node);
                     }
 
                     return node;
@@ -657,38 +657,38 @@ public class Parser
             throw new Exception("Expected field name");
         }
 
-        var functionCallOrProperty = ParseFunctionCall();
-        var functioncall = functionCallOrProperty as FunctionCallNode;
+        var functionCallOrExtension = ParseFunctionCall();
+        var functioncall = functionCallOrExtension as FunctionCallNode;
 
         if (functioncall == null)
-            return functionCallOrProperty;
+            return functionCallOrExtension;
 
         AstNode result = RefBoxFunctionCallNode.CreateVariableFunctionCall(instanceName, functioncall);
         while (_tokens[_position].Type == TokenType.Dot) // we can call a function for anonymous refbox instance
         {
             _position++; // .
-            var nextFunctionCallOrProperty = ParseFunctionCall();
-            var nextFunctioncall = nextFunctionCallOrProperty as FunctionCallNode;
-            var isProperty = false;
-            var propertyAccesses = new List<PropertyAccessNode>();
+            var nextFunctionCallOrExtension = ParseFunctionCall();
+            var nextFunctioncall = nextFunctionCallOrExtension as FunctionCallNode;
+            var isExtension = false;
+            var extensionAccesses = new List<ExtensionAccessNode>();
 
-            if (nextFunctionCallOrProperty is PropertyAccessNode propertyAccessNode)
+            if (nextFunctionCallOrExtension is ExtensionAccessNode extensionAccessNode)
             {
-                propertyAccesses.Add(propertyAccessNode);
-                AstNode node = propertyAccessNode.Node;
+                extensionAccesses.Add(extensionAccessNode);
+                AstNode node = extensionAccessNode.Node;
                 while (node is not FunctionCallNode)
                 {
-                    var property = node as PropertyAccessNode;
-                    node = property.Node;
+                    var extension = node as ExtensionAccessNode;
+                    node = extension.Node;
 
-                    if (property != null)
+                    if (extension != null)
                     {
-                        propertyAccesses.Add(property);
+                        extensionAccesses.Add(extension);
                     }
                 }
 
                 nextFunctioncall = node as FunctionCallNode;
-                isProperty = true;
+                isExtension = true;
             }
 
             if (result is RefBoxInstanceNode refBoxInstanceNode)
@@ -700,23 +700,23 @@ public class Parser
                 result = RefBoxFunctionCallNode.CreatePreviousCallWithFunctionCall(refBoxFunctionCallNode, nextFunctioncall);
             }
 
-            if (isProperty)
+            if (isExtension)
             {
-                propertyAccesses.Reverse();
-                AstNode propertyAccessResult = null;
-                foreach (var propertyAccess in propertyAccesses)
+                extensionAccesses.Reverse();
+                AstNode extensionAccessResult = null;
+                foreach (var extensionAccess in extensionAccesses)
                 {
-                    if (propertyAccessResult == null)
+                    if (extensionAccessResult == null)
                     {
-                        propertyAccessResult = new PropertyAccessNode(result, propertyAccess.PropertyName, propertyAccess.Arguments);
+                        extensionAccessResult = new ExtensionAccessNode(result, extensionAccess.ExtensionName, extensionAccess.Arguments);
                     }
                     else
                     {
-                        propertyAccessResult = new PropertyAccessNode(propertyAccessResult, propertyAccess.PropertyName, propertyAccess.Arguments);
+                        extensionAccessResult = new ExtensionAccessNode(extensionAccessResult, extensionAccess.ExtensionName, extensionAccess.Arguments);
                     }
                 }
 
-                return propertyAccessResult;
+                return extensionAccessResult;
             }
         }
         return result;
@@ -792,7 +792,7 @@ public class Parser
         return arrayAccess;
     }
 
-    private AstNode ParsePropertyAccess(AstNode node)
+    private AstNode ParseExtensionAccess(AstNode node)
     {
         if (_tokens[_position].Type != TokenType.Colon)
         {
@@ -801,19 +801,19 @@ public class Parser
 
         _position++; // .
 
-        var property = _tokens[_position].Value;
+        var extension = _tokens[_position].Value;
 
         _position++; // prop name
 
-        var arguments = TryParsePropertyArguments();
+        var arguments = TryParseExtensionArguments();
 
-        var propertyNode = new PropertyAccessNode(node, property, arguments);
+        var extensionNode = new ExtensionAccessNode(node, extension, arguments);
         while (_tokens[_position].Type == TokenType.Colon)
         {
-            propertyNode = ParsePropertyAccess(propertyNode) as PropertyAccessNode;
+            extensionNode = ParseExtensionAccess(extensionNode) as ExtensionAccessNode;
         }
 
-        return propertyNode;
+        return extensionNode;
     }
 
     private AstNode ParseRefBoxDeclaration()
@@ -935,7 +935,7 @@ public class Parser
         return new RefBoxInstanceNode(refBoxName);
     }
 
-    private List<AstNode> TryParsePropertyArguments()
+    private List<AstNode> TryParseExtensionArguments()
     {
         List<AstNode> arguments = [];
         if (_tokens[_position].Type != TokenType.LeftParen)

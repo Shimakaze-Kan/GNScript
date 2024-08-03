@@ -463,43 +463,43 @@ public class Interpreter
             var elements = arrayNode.Elements.Select(Visit).Select(x => x.Value).ToList();
             return ExecutionModel.FromObject(elements);
         }
-        else if (node is PropertyAccessNode propertyNode)
+        else if (node is ExtensionAccessNode extensionNode)
         {
-            var nodeModel = Visit(propertyNode.Node);
+            var nodeModel = Visit(extensionNode.Node);
 
             if (nodeModel.IsEmptyValue)
                 return ExecutionModel.Empty;
 
-            var commonProperties = EnumHelpers.GetEnumNamesLowercase<CommonValueProperty>();
-            if (commonProperties.Contains(propertyNode.PropertyName))
+            var commonExtensions = EnumHelpers.GetEnumNamesLowercase<CommonValueExtension>();
+            if (commonExtensions.Contains(extensionNode.ExtensionName))
             {
-                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, CommonValueProperty.Type))
+                if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, CommonValueExtension.Type))
                 {
                     return Enum.GetName(typeof(ExecutionModelValueType), nodeModel.ModelType);
                 }
             }
 
-            if (nodeModel.IsArray() && ArrayNode.Properties.Contains(propertyNode.PropertyName))
+            if (nodeModel.IsArray() && ArrayNode.Extensions.Contains(extensionNode.ExtensionName))
             {
                 var originalArrayValue = (List<object>)nodeModel;
                 var arrayValue = originalArrayValue.DeepCopy(); // GN Script array is not reference type by language convention
 
-                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Length))
+                if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.Length))
                 {
                     return arrayValue.Count;
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Reverse))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.Reverse))
                 {
                     arrayValue.Reverse();
                     return ExecutionModel.FromObject(arrayValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.ToString))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.ToString))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 0 && propertyNode.Arguments.Count != 0, "Expected 0 or 1 arguments");
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 0 && extensionNode.Arguments.Count != 0, "Expected 0 or 1 arguments");
 
-                    if (propertyNode.Arguments.Count == 1)
+                    if (extensionNode.Arguments.Count == 1)
                     {
-                        var connectModel = Visit(propertyNode.Arguments[0]);
+                        var connectModel = Visit(extensionNode.Arguments[0]);
                         ExceptionsHelper.FailIfFalse(connectModel.IsString(), "Expected string argument");
                         var connect = (string)connectModel;
 
@@ -508,10 +508,10 @@ public class Interpreter
 
                     return string.Join("", arrayValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.RemoveAt))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.RemoveAt))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 argument");
-                    var atModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 1, "Expected 1 argument");
+                    var atModel = Visit(extensionNode.Arguments[0]);
 
                     ExceptionsHelper.FailIfTrue(atModel.IsEmptyValue, "Expected value argument");
                     ExceptionsHelper.FailIfFalse(atModel.IsInt(), "Expected Int argument");
@@ -519,91 +519,91 @@ public class Interpreter
                     arrayValue.RemoveAt((int)atModel);
                     return ExecutionModel.FromObject(arrayValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Append))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.Append))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
-                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(extensionNode.Arguments[0]);
 
                     arrayValue.Add(valueModel.Value);
                     return ExecutionModel.FromObject(arrayValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.AddAt))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.AddAt))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
-                    var atModel = Visit(propertyNode.Arguments[0]);
-                    var valueModel = Visit(propertyNode.Arguments[1]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var atModel = Visit(extensionNode.Arguments[0]);
+                    var valueModel = Visit(extensionNode.Arguments[1]);
 
                     ExceptionsHelper.FailIfFalse(atModel.IsInt(), "Expected Int argument");
                     arrayValue.Insert((int)atModel, valueModel.Value);
                     return ExecutionModel.FromObject(arrayValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Prepend))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.Prepend))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
-                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(extensionNode.Arguments[0]);
 
                     arrayValue.Insert(0, valueModel.Value);
                     return ExecutionModel.FromObject(arrayValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.ReplaceAt))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.ReplaceAt))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count < 2, "Expected at least 2 arguments");
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count < 2, "Expected at least 2 arguments");
 
                     List<object> parameters = [];
-                    for (int i = 0; i < propertyNode.Arguments.Count - 1; i++)
+                    for (int i = 0; i < extensionNode.Arguments.Count - 1; i++)
                     {
-                        var indexModel = Visit(propertyNode.Arguments[i]);
+                        var indexModel = Visit(extensionNode.Arguments[i]);
                         ExceptionsHelper.FailIfFalse(indexModel.IsInt(), "Expected Int argument");
 
                         parameters.Add((int)indexModel);
                     }
 
-                    var valueModel = Visit(propertyNode.Arguments[^1]);
+                    var valueModel = Visit(extensionNode.Arguments[^1]);
                     parameters.Add(valueModel.Value);
                     arrayValue.ReplaceGNArray([.. parameters]);
 
                     return ExecutionModel.FromObject(arrayValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, ArrayProperty.Has))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.Has))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
-                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(extensionNode.Arguments[0]);
 
                     return arrayValue.Contains(valueModel.Value) ? 1 : 0;
                 }
             }
 
-            var stringProperties = EnumHelpers.GetEnumNamesLowercase<StringProperty>();
-            if (nodeModel.IsString() && stringProperties.Contains(propertyNode.PropertyName))
+            var stringExtensions = EnumHelpers.GetEnumNamesLowercase<StringExtension>();
+            if (nodeModel.IsString() && stringExtensions.Contains(extensionNode.ExtensionName))
             {
                 var stringValue = (string)nodeModel;
-                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToLower))
+                if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.ToLower))
                 {
                     return stringValue.ToLower();
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToUpper))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.ToUpper))
                 {
                     return stringValue.ToUpper();
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Reverse))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.Reverse))
                 {
                     return string.Join("", stringValue.Reverse());
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToArray))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.ToArray))
                 {
                     return ExecutionModel.FromObject(stringValue.ToList().ConvertAll(c => c.ToString()));
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Length))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.Length))
                 {
                     return ExecutionModel.FromObject(stringValue.Length);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.Split))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.Split))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 0 && propertyNode.Arguments.Count != 1, "Expected 0 or 1 arguments");
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 0 && extensionNode.Arguments.Count != 1, "Expected 0 or 1 arguments");
 
-                    if (propertyNode.Arguments.Count == 1)
+                    if (extensionNode.Arguments.Count == 1)
                     {
-                        var valueModel = Visit(propertyNode.Arguments[0]);
+                        var valueModel = Visit(extensionNode.Arguments[0]);
                         ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected string");
                         var splitValue = (string)valueModel;
 
@@ -612,11 +612,11 @@ public class Interpreter
 
                     return ExecutionModel.FromObject(stringValue.Split().Cast<object>().ToList());
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ReplaceAt))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.ReplaceAt))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
-                    var indexModel = Visit(propertyNode.Arguments[0]);
-                    var valueModel = Visit(propertyNode.Arguments[1]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var indexModel = Visit(extensionNode.Arguments[0]);
+                    var valueModel = Visit(extensionNode.Arguments[1]);
                     ExceptionsHelper.FailIfFalse(indexModel.IsInt(), "Expected int index");
                     ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected string value");
 
@@ -628,27 +628,27 @@ public class Interpreter
                     string result = $"{stringValue[..index]}{value}{stringValue[(index + 1)..]}";
                     return result;
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.ToInt))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.ToInt))
                 {
                     return int.Parse(stringValue);
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, StringProperty.CanConvertToInt))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.CanConvertToInt))
                 {
                     return int.TryParse(stringValue, out _) ? 1 : 0;
                 }
             }
 
-            var refBoxProperties = EnumHelpers.GetEnumNamesLowercase<BoxProperty>();
-            if (nodeModel.IsRefBox() && refBoxProperties.Contains(propertyNode.PropertyName))
+            var refBoxExtensions = EnumHelpers.GetEnumNamesLowercase<BoxExtension>();
+            if (nodeModel.IsRefBox() && refBoxExtensions.Contains(extensionNode.ExtensionName))
             {
-                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.IsInstanceOf))
+                if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, BoxExtension.IsInstanceOf))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1, "Expected 1 arguments");
-                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 1, "Expected 1 arguments");
+                    var valueModel = Visit(extensionNode.Arguments[0]);
                     ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected ref box name");
                     var refBoxName = (string)valueModel;
 
-                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    var instanceName = ((VariableNode)extensionNode.Node).Name;
                     var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
                     var instanceFields = refBox.Keys.Select(k => k.VariableName).Where(v => string.IsNullOrEmpty(v) == false).ToList();
                     var definitionFields = _refBoxDefinitions[refBoxName].Fields.ConvertAll(field => field.Element.Variable);
@@ -660,17 +660,17 @@ public class Interpreter
                     var sameFunctions = Enumerable.SequenceEqual(definitionFunctions.Order(), instanceFunctions.Order());
                     return sameFields && sameFunctions ? 1 : 0;
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.HasField))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, BoxExtension.HasField))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 1 && propertyNode.Arguments.Count != 2, "Expected 1 or 2 arguments");
-                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 1 && extensionNode.Arguments.Count != 2, "Expected 1 or 2 arguments");
+                    var valueModel = Visit(extensionNode.Arguments[0]);
                     ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected field name");
                     var fieldName = (string)valueModel;
                     var showGuarded = 0;
 
-                    if (propertyNode.Arguments.Count == 2)
+                    if (extensionNode.Arguments.Count == 2)
                     {
-                        valueModel = Visit(propertyNode.Arguments[1]);
+                        valueModel = Visit(extensionNode.Arguments[1]);
                         ExceptionsHelper.FailIfFalse(valueModel.IsInt(), "Expected bool");
 
                         showGuarded = (int)valueModel;
@@ -678,16 +678,16 @@ public class Interpreter
 
                     var instanceName = string.Empty;
 
-                    if (propertyNode.Node is VariableNode variable)
+                    if (extensionNode.Node is VariableNode variable)
                     {
                         instanceName = variable.Name;
                     }
-                    else if (propertyNode.Node is RefBoxFunctionCallNode refBoxFunctionCallNode)
+                    else if (extensionNode.Node is RefBoxFunctionCallNode refBoxFunctionCallNode)
                     {
                         instanceName = refBoxFunctionCallNode.InstanceName;
                         if (string.IsNullOrEmpty(instanceName)) // it means it's anonymous instance
                         {
-                            throw new Exception("HasField property cannot be invoked on anonymous instance");
+                            throw new Exception("HasField extension cannot be invoked on anonymous instance");
                         }
                     }
 
@@ -696,34 +696,34 @@ public class Interpreter
 
                     return instanceFields.Contains(fieldName) ? 1 : 0;
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.HasFunction))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, BoxExtension.HasFunction))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
-                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var valueModel = Visit(extensionNode.Arguments[0]);
                     ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected function name");
                     var functionName = (string)valueModel;
 
-                    valueModel = Visit(propertyNode.Arguments[1]);
+                    valueModel = Visit(extensionNode.Arguments[1]);
                     ExceptionsHelper.FailIfFalse(valueModel.IsInt(), "Expected number of parameters");
                     var parametersCount = (int)valueModel;
 
-                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    var instanceName = ((VariableNode)extensionNode.Node).Name;
                     var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
                     var instanceFuncs = refBox.Keys.Where(k => k.FunctionKey != null).Select(k => k.FunctionKey).ToList();
 
                     return instanceFuncs.Any(f => f.FunctionName == functionName && f.FunctionParameterCount == parametersCount) ? 1 : 0;
                 }
-                else if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, BoxProperty.ReflectionSetField))
+                else if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, BoxExtension.ReflectionSetField))
                 {
-                    ExceptionsHelper.FailIfTrue(propertyNode.Arguments.Count != 2, "Expected 2 arguments");
-                    var valueModel = Visit(propertyNode.Arguments[0]);
+                    ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 2, "Expected 2 arguments");
+                    var valueModel = Visit(extensionNode.Arguments[0]);
                     ExceptionsHelper.FailIfFalse(valueModel.IsString(), "Expected field name");
                     var fieldName = (string)valueModel;
 
-                    valueModel = Visit(propertyNode.Arguments[1]);
+                    valueModel = Visit(extensionNode.Arguments[1]);
                     var newValuemodel = valueModel.Value;
 
-                    var instanceName = ((VariableNode)propertyNode.Node).Name;
+                    var instanceName = ((VariableNode)extensionNode.Node).Name;
                     var refBox = (Dictionary<FunctionVariableDictionaryKey, RefBoxElement>)_variables.GetVariable(instanceName, _scopeLevel);
 
                     var modifier = refBox[new(fieldName)].Modifier;
@@ -733,17 +733,17 @@ public class Interpreter
                 }
             }
 
-            var intProperties = EnumHelpers.GetEnumNamesLowercase<IntProperty>();
-            if (nodeModel.IsInt() && intProperties.Contains(propertyNode.PropertyName))
+            var intExtensions = EnumHelpers.GetEnumNamesLowercase<IntExtension>();
+            if (nodeModel.IsInt() && intExtensions.Contains(extensionNode.ExtensionName))
             {
                 var intValue = (int)nodeModel;
-                if (EnumHelpers.EqualsIgnoreCase(propertyNode.PropertyName, IntProperty.ToString))
+                if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, IntExtension.ToString))
                 {
                     return intValue.ToString();
                 }
             }
 
-            throw new Exception($"Property '{propertyNode.PropertyName}' not found");
+            throw new Exception($"Extension '{extensionNode.ExtensionName}' not found");
         }
         else if (node is RefBoxNode refBoxNode)
         {
