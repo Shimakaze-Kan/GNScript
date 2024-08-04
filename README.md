@@ -17,6 +17,56 @@ In GN Script, you get:
 
 GN Script is not just a language, it's an extension of my thought process, a tool that behaves just as I intuitively expect it to. I wrote it just for fun, to see how far my creativity and intuition could take me in building something unique.
 
+<table>
+<tr>
+<th>Code (check amicable numbers)</th>
+<th>rangeLib.txt</th>
+</tr>
+<tr>
+<td>
+  
+```
+import "rangeLib.txt"
+
+function sumOfProperDivisors(n)
+  total = 0
+  range = rangeArray(1, n / 2 + 1)
+  for i = 0; i < range:length; i = i + 1
+    number = range[i]
+    if n % number == 0
+      total = total + number
+    end
+  end
+return total
+
+function areAmicableNumbers(a, b)
+  return (sumOfProperDivisors(a) == b) && (sumOfProperDivisors(b) == a)
+
+number1 = 220
+number2 = 284
+
+if areAmicableNumbers(number1, number2)
+  print "The numbers " + number1 + " and " + number2 + " are amicable."
+else
+  print "The numbers " + number1 + " and " + number2 + " are not amicable."
+end
+```
+</td>
+<td>
+
+```
+function rangeArray(startNum, endNum)
+  result = []
+  for i = startNum; i < endNum; i = i + 1
+    result = result + i
+  end
+return result
+```
+
+</td>
+</tr>
+</table>
+
 ## Examples
 
 As a first step, I recommend running the examples located in the `examples` folder. They will help you take your first step in learning GN script.
@@ -148,7 +198,7 @@ Another way is to use the interpreter instruction `dump`, which will display all
 ```
 > dump
 [Variables]
-Scope level: 0
+  Scope level: 0
   {a: 12} [Int]
   {b: [1, 2, 3]} [Array]
 
@@ -233,9 +283,11 @@ Access to array elements is done using square brackets [].
 > print a[0]
 
 1
+
 > print a[a:length - 1][2][0]
 
 33
+
 > print [1, 2, 3][2]
 
 3
@@ -255,7 +307,7 @@ function myFunction(a, b)
       return a
     end
   end
-  return "they are equal"
+return "they are equal"
 ```
 
 Output:
@@ -264,9 +316,11 @@ Output:
 > myFunction(1, 2)
 
 "2 is bigger than 1"
+
 > print myFunction(2, 1)
 
 1
+
 > print myFunction(2, 2)
 
 2
@@ -310,9 +364,11 @@ Instance:
 > myInstance.printX()
 
 1
+
 > print myInstance.x
 
 Error: Cannot access guarded field
+
 > myInstance.y = 100
 ```
 
@@ -325,8 +381,8 @@ refbox base
   x = 10
   function fun()
     print "I'm from base refbox"
-  return void
-end
+    return void
+  end
 
 refbox child : base
   y = "dddd"
@@ -376,13 +432,10 @@ Inheritance:
 
 ```
 > refbox noOverwritten : abstr
-end
+  end
 
 Error: Refbox cannot have not overrided functions: test
-> refbox noOverwritten : abstr
-end
 
-Error: Refbox cannot have not overrided functions: test
 > refbox overwritten : abstr
   function test(x)
   return 123
@@ -406,7 +459,7 @@ Redefining:
 
 ```
 > refbox myConstRef
-end
+  end
 
 Error: Ref box 'myConstRef' is const, cannot create ref box definition with the same name
 ```
