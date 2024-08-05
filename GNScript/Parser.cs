@@ -318,12 +318,27 @@ public class Parser
 
     private AstNode ParseExpression()
     {
-        return ParseComparison();
+        return ParseLogicalOperator();
+    }
+
+    private AstNode ParseLogicalOperator()
+    {
+        var left = ParseComparison();
+
+        while (_position < _tokens.Count && (_tokens[_position].Type == TokenType.AndOperator || _tokens[_position].Type == TokenType.OrOperator))
+        {
+            var operatorToken = _tokens[_position];
+            _position++;
+            var right = ParseComparison();
+            left = new BinaryOperationNode(left, operatorToken, right);
+        }
+
+        return left;
     }
 
     private AstNode ParseComparison()
     {
-        var comparsionOperators = new[] { TokenType.GreaterThan, TokenType.LessThan, TokenType.Equal, TokenType.NotEqual, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual, TokenType.AndOperator, TokenType.OrOperator };
+        var comparsionOperators = new[] { TokenType.GreaterThan, TokenType.LessThan, TokenType.Equal, TokenType.NotEqual, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual };
         var left = ParseTerm();
 
         while (_position < _tokens.Count && comparsionOperators.Contains(_tokens[_position].Type))
