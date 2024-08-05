@@ -10,6 +10,7 @@ public class Interpreter
     private Dictionary<FunctionDictionaryKey, FunctionNode> _functions = [];
     private Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
     private Stack<CallReturnValue> _callReturnValue = [];
+    private Dictionary<string, UserDefinedExtension> _userDefinedExtensions = [];
     private int _scopeLevel = 0;
     private bool _isForLoopParameterSection = false;
 
@@ -479,10 +480,54 @@ public class Interpreter
                 }
             }
 
-            if (nodeModel.IsArray() && ArrayNode.Extensions.Contains(extensionNode.ExtensionName))
+            if (nodeModel.IsArray())
             {
                 var originalArrayValue = (List<object>)nodeModel;
                 var arrayValue = originalArrayValue.DeepCopy(); // GN Script array is not reference type by language convention
+
+                if (_userDefinedExtensions.TryGetValue(extensionNode.ExtensionName.ToLower(), out var userDefinedExtension))
+                {
+                    if (userDefinedExtension.Type == "array")
+                    {
+                        ExceptionsHelper.FailIfFalse(extensionNode.Arguments.Count == userDefinedExtension.FunctionParameterNames.Count - 1,
+                            $"Expected {userDefinedExtension.FunctionParameterNames.Count - 1} parameters");
+
+                        var callScopeLevel = _scopeLevel;
+                        _scopeLevel++;
+
+                        // pass value before extension as first parameter
+                        _variables.SetVariable(userDefinedExtension.FunctionParameterNames[0], arrayValue, _scopeLevel, true);
+
+                        for (int i = 0; i < extensionNode.Arguments.Count; i++)
+                        {
+                            _variables.SetVariable(userDefinedExtension.FunctionParameterNames[i + 1], extensionNode.Arguments[i], _scopeLevel, true);
+                        }
+
+                        var body = userDefinedExtension.FunctionBody;
+                        while (body != null)
+                        {
+                            Visit(body);
+                            body = body.Next;
+
+                            if (_callReturnValue.Any())
+                            {
+                                _variables.ClearScope(callScopeLevel + 1);
+                                _scopeLevel = callScopeLevel;
+                                var callReturnValue = _callReturnValue.Pop();
+
+                                if (callReturnValue.IsVoid)
+                                {
+                                    return ExecutionModel.Empty;
+                                }
+
+                                var returnValue = callReturnValue.ReturnValue;
+                                return ExecutionModel.FromObject(returnValue);
+                            }
+                        }
+
+                        throw new Exception("No return statement in extension referenced function");
+                    }
+                }
 
                 if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.Length))
                 {
@@ -1060,6 +1105,42 @@ public class Interpreter
             var exists = File.Exists((string)pathModel);
             return exists ? 1 : 0;
         }
+        else if (node is UserDefinedExtensionNode userDefinedExtensionNode)
+        {
+            var typeModel = Visit(userDefinedExtensionNode.Type);
+            var refboxNameModel = Visit(userDefinedExtensionNode.RefBoxName);
+            var functionNameModel = Visit(userDefinedExtensionNode.FunctionName);
+            var numOfParametersModel = Visit(userDefinedExtensionNode.NumberOfParameters);
+
+            ExceptionsHelper.FailIfFalse(typeModel.IsString(), "Expected type");
+            ExceptionsHelper.FailIfFalse(refboxNameModel.IsString(), "Expected an refbox name");
+            ExceptionsHelper.FailIfFalse(functionNameModel.IsString(), "Expected an function name");
+            ExceptionsHelper.FailIfFalse(numOfParametersModel.IsInt(), "Expected number of function parameters");
+
+            var type = ((string)typeModel).ToLower();
+            var refboxName = (string)refboxNameModel;
+            var functionName = (string)functionNameModel;
+            var numOfParameters = (int)numOfParametersModel;
+
+            ExceptionsHelper.FailIfTrue(numOfParameters == 0, "Expected at least one parameter in referenced function");
+
+            string[] types = ["string", "int", "refbox", "array"];
+            ExceptionsHelper.FailIfFalse(types.Contains(type), "Invalid type");
+
+            ExceptionsHelper.FailIfFalse(_refBoxDefinitions.ContainsKey(refboxName), "Refbox not found");
+            var refbox = _refBoxDefinitions[refboxName];
+
+            ExceptionsHelper.FailIfFalse(refbox.IsConst, "Expected const refbox");
+            ExceptionsHelper.FailIfTrue(refbox.IsAbstract, "Refbox cannot be abstract");
+            var function = refbox.Functions.FirstOrDefault(f => f.Element.Name == functionName && f.Element.Parameters.Count == numOfParameters);
+            ExceptionsHelper.FailIfTrue(function is null, "Function not found");
+            ExceptionsHelper.FailIfTrue(function.Modifier == AccessModifier.Guarded, "Function has to be Exposed");
+
+            var functionBody = function.Element.Body;
+            _userDefinedExtensions[functionName.ToLower()] = new(type, function.Element.Parameters, functionBody);
+
+            return ExecutionModel.Empty;
+        }
 
         throw new Exception("AST node error");
     }
@@ -1144,6 +1225,7 @@ public class Interpreter
         _refBoxDefinitions = interpreterRuntimeState.RefBoxDefinitions;
         _scopeLevel = interpreterRuntimeState.ScopeLevel;
         _variables = interpreterRuntimeState.Variables;
+        _userDefinedExtensions = interpreterRuntimeState.UserDefinedExtensions;
     }
 
     private void DeclareFunctionParameters(FunctionCallNode functionCallNode, FunctionNode function)
