@@ -128,6 +128,7 @@ As a first step, I recommend running the examples located in the `examples` fold
 <li><a href="#io-operations">IO Operations</a></li>
 <li><a href="#interpreter-instructions">Interpreter Instructions</a></li>
 <li><a href="#Importing-Scripts">Importing Scripts</a></li>
+<li><a href="#Language-Keywords">Language Keywords</a></li>
 </ol>
 
 <h3 id="variables">Variables and Scopes</h3>
@@ -742,6 +743,48 @@ end
 ```
 
 However, the interpreter requires that there are no blank lines between instructions. A double line break is treated as a command to execute the written code fragment. This rule does not apply to scripts imported using the `import` instruction.
+
+<h3 id="Language-Keywords">Language Keywords</h3>
+
+The following are language keywords that should not be used as variable names, function names, parameters, or refbox names:
+
+<table>
+  <tr>
+    <td>print</td>
+    <td>function</td>
+    <td>refbox</td>
+    <td>abstract</td>
+    <td>const</td>
+  </tr>
+  <tr>
+    <td>printInline</td>
+    <td>return</td>
+    <td>create</td>
+    <td>import</td>
+    <td>wuwei</td>
+  </tr>
+  <tr>
+    <td>if</td>
+    <td>while</td>
+    <td>throw</td>
+    <td>readFile</td>
+    <td>void</td>
+  </tr>
+  <tr>
+    <td>else</td>
+    <td>for</td>
+    <td>guarded</td>
+    <td>readWholeFile</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>input</td>
+    <td>end</td>
+    <td>exposed</td>
+    <td>fileExists</td>
+    <td></td>
+  </tr>
+</table>
 
 <h3 id="Future-of-the-Project">Future of the Project</h3>
 
