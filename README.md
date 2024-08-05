@@ -125,6 +125,7 @@ As a first step, I recommend running the examples located in the `examples` fold
 <li><a href="#operators-array-and-array">Array And Array</a></li>
 <li><a href="#operators-string-and-string">String And String</a></li>
 </ul>
+<li><a href="#io-operations">IO Operations</a></li>
 <li><a href="#interpreter-instructions">Interpreter Instructions</a></li>
 <li><a href="#Importing-Scripts">Importing Scripts</a></li>
 </ol>
@@ -674,6 +675,36 @@ t1 = create test1
 | <=       | "a"                     | "b"                      | 1            | Returns 1 if the first string is lexicographically less than or equal to the second string, otherwise returns 0.    |
 | ==       | "hello"                 | "hello"                  | 1            | Returns 1 if the first string is equal to the second string, otherwise returns 0.                                   |
 | !=       | "hello"                 | "world"                  | 1            | Returns 1 if the first string is not equal to the second string, otherwise returns 0.                               |
+
+<h3 id="io-operations">IO Operations</h3>
+
+- **fileExists**
+  - Checks if a file exists at the specified path.
+  - Example: `fileExists("rangeLib.txt")`
+  - Returns: `1` if the file exists, `0` otherwise.
+
+- **readFile**
+  - Reads the content of a file and returns it as an array, with each element being a line from the file.
+  - Example: `readFile("rangeLib.txt")`
+  - Result:
+    ```plaintext
+    ["function rangeArray(startNum, endNum)", "  result = []", "  for i = startNum; i < endNum; i = i + 1", "    result = result + i", "  end", "return result"]
+    ```
+
+- **readWholeFile** (obsolete)
+  - Reads the entire content of a file and returns it as a single string.
+  - Example: `readWholeFile("rangeLib.txt")`
+  - Result:
+    ```plaintext
+    function rangeArray(startNum, endNum)
+      result = []
+      for i = startNum; i < endNum; i = i + 1
+        result = result + i
+      end
+    return result
+    ```
+
+However, it is recommended to use `readFile` instead of `readWholeFile` to maintain code readability. Operating on arrays is easier.
 
 <h3 id="interpreter-instructions">Interpreter Instructions</h3>
 
