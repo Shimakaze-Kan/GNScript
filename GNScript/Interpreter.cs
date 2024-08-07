@@ -1222,6 +1222,17 @@ public class Interpreter
         if (_refBoxDefinitions.Count == 0)
             sb.AppendLine("  No ref boxes to display.");
 
+        sb.AppendLine();
+
+        sb.AppendLine("[User defined extensions]");
+        foreach (var key in _userDefinedExtensions.Keys)
+        {
+            sb.AppendLine($"  {key.ExtensionName} : (1){(key.NumberOfParameters > 1 ? $" + ({key.NumberOfParameters - 1})" : "")}");
+        }
+
+        if (_userDefinedExtensions.Count == 0)
+            sb.AppendLine("  No extensions to display.");
+
         Console.WriteLine(sb);
     }
 
