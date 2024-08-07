@@ -7,7 +7,7 @@ public class InterpreterRuntimeState
     public Dictionary<FunctionDictionaryKey, FunctionNode> Functions { get; set; }
     public Dictionary<string, RefBoxNode> RefBoxDefinitions { get; set; }
     public Stack<CallReturnValue> CallReturnValues { get; set; }
-    public Dictionary<string, UserDefinedExtension> UserDefinedExtensions { get; set; }
+    public Dictionary<UserDefinedExtensionKey, UserDefinedExtension> UserDefinedExtensions { get; set; }
     public int ScopeLevel { get; set; }
     public bool IsForLoopParameterSection { get; set; }
 

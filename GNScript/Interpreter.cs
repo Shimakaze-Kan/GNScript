@@ -10,7 +10,7 @@ public class Interpreter
     private Dictionary<FunctionDictionaryKey, FunctionNode> _functions = [];
     private Dictionary<string, RefBoxNode> _refBoxDefinitions = [];
     private Stack<CallReturnValue> _callReturnValue = [];
-    private Dictionary<string, UserDefinedExtension> _userDefinedExtensions = [];
+    private Dictionary<UserDefinedExtensionKey, UserDefinedExtension> _userDefinedExtensions = [];
     private int _scopeLevel = 0;
     private bool _isForLoopParameterSection = false;
 
@@ -480,54 +480,18 @@ public class Interpreter
                 }
             }
 
+            var arrayExtensions = EnumHelpers.GetEnumNamesLowercase<ArrayExtension>();
             if (nodeModel.IsArray())
             {
                 var originalArrayValue = (List<object>)nodeModel;
                 var arrayValue = originalArrayValue.DeepCopy(); // GN Script array is not reference type by language convention
 
-                if (_userDefinedExtensions.TryGetValue(extensionNode.ExtensionName.ToLower(), out var userDefinedExtension))
+                if (_userDefinedExtensions.TryGetValue(new(extensionNode.ExtensionName.ToLower(), extensionNode.Arguments.Count + 1), out var userDefinedExtension) 
+                    && userDefinedExtension.Type == "array")
                 {
-                    if (userDefinedExtension.Type == "array")
-                    {
-                        ExceptionsHelper.FailIfFalse(extensionNode.Arguments.Count == userDefinedExtension.FunctionParameterNames.Count - 1,
-                            $"Expected {userDefinedExtension.FunctionParameterNames.Count - 1} parameters");
-
-                        var callScopeLevel = _scopeLevel;
-                        _scopeLevel++;
-
-                        // pass value before extension as first parameter
-                        _variables.SetVariable(userDefinedExtension.FunctionParameterNames[0], arrayValue, _scopeLevel, true);
-
-                        for (int i = 0; i < extensionNode.Arguments.Count; i++)
-                        {
-                            _variables.SetVariable(userDefinedExtension.FunctionParameterNames[i + 1], extensionNode.Arguments[i], _scopeLevel, true);
-                        }
-
-                        var body = userDefinedExtension.FunctionBody;
-                        while (body != null)
-                        {
-                            Visit(body);
-                            body = body.Next;
-
-                            if (_callReturnValue.Any())
-                            {
-                                _variables.ClearScope(callScopeLevel + 1);
-                                _scopeLevel = callScopeLevel;
-                                var callReturnValue = _callReturnValue.Pop();
-
-                                if (callReturnValue.IsVoid)
-                                {
-                                    return ExecutionModel.Empty;
-                                }
-
-                                var returnValue = callReturnValue.ReturnValue;
-                                return ExecutionModel.FromObject(returnValue);
-                            }
-                        }
-
-                        throw new Exception("No return statement in extension referenced function");
-                    }
+                    return ExecuteUserDefinedExtension(extensionNode, arrayValue, userDefinedExtension);
                 }
+                ExceptionsHelper.FailIfFalse(arrayExtensions.Contains(extensionNode.ExtensionName), "Extension not found");
 
                 if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, ArrayExtension.Length))
                 {
@@ -619,9 +583,17 @@ public class Interpreter
             }
 
             var stringExtensions = EnumHelpers.GetEnumNamesLowercase<StringExtension>();
-            if (nodeModel.IsString() && stringExtensions.Contains(extensionNode.ExtensionName))
+            if (nodeModel.IsString())
             {
                 var stringValue = (string)nodeModel;
+
+                if (_userDefinedExtensions.TryGetValue(new(extensionNode.ExtensionName.ToLower(), extensionNode.Arguments.Count + 1), out var userDefinedExtension) 
+                    && userDefinedExtension.Type == "string")
+                {
+                    return ExecuteUserDefinedExtension(extensionNode, stringValue, userDefinedExtension);
+                }
+                ExceptionsHelper.FailIfFalse(stringExtensions.Contains(extensionNode.ExtensionName), "Extension not found");
+
                 if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, StringExtension.ToLower))
                 {
                     return stringValue.ToLower();
@@ -684,8 +656,15 @@ public class Interpreter
             }
 
             var refBoxExtensions = EnumHelpers.GetEnumNamesLowercase<BoxExtension>();
-            if (nodeModel.IsRefBox() && refBoxExtensions.Contains(extensionNode.ExtensionName))
+            if (nodeModel.IsRefBox())
             {
+                if (_userDefinedExtensions.TryGetValue(new(extensionNode.ExtensionName.ToLower(), extensionNode.Arguments.Count + 1), out var userDefinedExtension) 
+                    && userDefinedExtension.Type == "refbox")
+                {
+                    return ExecuteUserDefinedExtension(extensionNode, nodeModel.Value, userDefinedExtension);
+                }
+                ExceptionsHelper.FailIfFalse(refBoxExtensions.Contains(extensionNode.ExtensionName), "Extension not found");
+
                 if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, BoxExtension.IsInstanceOf))
                 {
                     ExceptionsHelper.FailIfTrue(extensionNode.Arguments.Count != 1, "Expected 1 arguments");
@@ -779,9 +758,16 @@ public class Interpreter
             }
 
             var intExtensions = EnumHelpers.GetEnumNamesLowercase<IntExtension>();
-            if (nodeModel.IsInt() && intExtensions.Contains(extensionNode.ExtensionName))
+            if (nodeModel.IsInt())
             {
                 var intValue = (int)nodeModel;
+                if (_userDefinedExtensions.TryGetValue(new(extensionNode.ExtensionName.ToLower(), extensionNode.Arguments.Count + 1), out var userDefinedExtension) 
+                    && userDefinedExtension.Type == "int")
+                {
+                    return ExecuteUserDefinedExtension(extensionNode, intValue, userDefinedExtension);
+                }
+                ExceptionsHelper.FailIfFalse(intExtensions.Contains(extensionNode.ExtensionName), "Extension not found");
+
                 if (EnumHelpers.EqualsIgnoreCase(extensionNode.ExtensionName, IntExtension.ToString))
                 {
                     return intValue.ToString();
@@ -1137,12 +1123,53 @@ public class Interpreter
             ExceptionsHelper.FailIfTrue(function.Modifier == AccessModifier.Guarded, "Function has to be Exposed");
 
             var functionBody = function.Element.Body;
-            _userDefinedExtensions[functionName.ToLower()] = new(type, function.Element.Parameters, functionBody);
+            _userDefinedExtensions[new(functionName.ToLower(), function.Element.Parameters.Count)] = new(type, function.Element.Parameters, functionBody);
 
             return ExecutionModel.Empty;
         }
 
         throw new Exception("AST node error");
+    }
+
+    private ExecutionModel ExecuteUserDefinedExtension(ExtensionAccessNode extensionNode, object value, UserDefinedExtension userDefinedExtension)
+    {
+        ExceptionsHelper.FailIfFalse(extensionNode.Arguments.Count == userDefinedExtension.FunctionParameterNames.Count - 1,
+                                    $"Expected {userDefinedExtension.FunctionParameterNames.Count - 1} parameters");
+
+        var callScopeLevel = _scopeLevel;
+        _scopeLevel++;
+
+        // pass value before extension as first parameter
+        _variables.SetVariable(userDefinedExtension.FunctionParameterNames[0], value, _scopeLevel, true);
+
+        for (int i = 0; i < extensionNode.Arguments.Count; i++)
+        {
+            _variables.SetVariable(userDefinedExtension.FunctionParameterNames[i + 1], Visit(extensionNode.Arguments[i]).Value, _scopeLevel, true);
+        }
+
+        var body = userDefinedExtension.FunctionBody;
+        while (body != null)
+        {
+            Visit(body);
+            body = body.Next;
+
+            if (_callReturnValue.Any())
+            {
+                _variables.ClearScope(callScopeLevel + 1);
+                _scopeLevel = callScopeLevel;
+                var callReturnValue = _callReturnValue.Pop();
+
+                if (callReturnValue.IsVoid)
+                {
+                    return ExecutionModel.Empty;
+                }
+
+                var returnValue = callReturnValue.ReturnValue;
+                return ExecutionModel.FromObject(returnValue);
+            }
+        }
+
+        throw new Exception("No return statement in extension referenced function");
     }
 
     private RefBoxInstanceNode CreateAnonymousRefBoxInstance(Dictionary<FunctionVariableDictionaryKey, RefBoxElement>? callReturnValue, List<string> anonymousRefBoxDefinitionNames)
