@@ -413,3 +413,19 @@ public class FileExistsNode : AstNode
         Path = path;
     }
 }
+
+public class UserDefinedExtensionNode : AstNode
+{
+    public AstNode Type { get; }
+    public AstNode RefBoxName { get; }
+    public AstNode FunctionName { get; }
+    public AstNode NumberOfParameters { get; }
+
+    public UserDefinedExtensionNode(AstNode type, AstNode refBoxName, AstNode functionName, AstNode numberOfParameters)
+    {
+        Type = type;
+        RefBoxName = refBoxName;
+        FunctionName = functionName;
+        NumberOfParameters = numberOfParameters;
+    }
+}

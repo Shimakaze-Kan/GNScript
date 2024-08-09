@@ -7,6 +7,7 @@ public class InterpreterRuntimeState
     public Dictionary<FunctionDictionaryKey, FunctionNode> Functions { get; set; }
     public Dictionary<string, RefBoxNode> RefBoxDefinitions { get; set; }
     public Stack<CallReturnValue> CallReturnValues { get; set; }
+    public Dictionary<UserDefinedExtensionKey, UserDefinedExtension> UserDefinedExtensions { get; set; }
     public int ScopeLevel { get; set; }
     public bool IsForLoopParameterSection { get; set; }
 
@@ -25,6 +26,7 @@ public class InterpreterRuntimeState
         Functions.CombineDictionaries(state.Functions);
         RefBoxDefinitions.CombineDictionaries(state.RefBoxDefinitions);
         CallReturnValues = new(CallReturnValues.Concat(state.CallReturnValues.Reverse()));
+        UserDefinedExtensions.CombineDictionaries(state.UserDefinedExtensions);
         ScopeLevel = state.ScopeLevel;
         IsForLoopParameterSection = state.IsForLoopParameterSection;
     }

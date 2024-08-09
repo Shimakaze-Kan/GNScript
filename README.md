@@ -113,6 +113,13 @@ As a first step, I recommend running the examples located in the `examples` fold
 <li><a href="#extensions-refbox">Refbox</a></li>
 <li><a href="#extensions-int">Int</a></li>
 </ul>
+<li><a href="#user-defined-extensions">User-defined extensions</a></li>
+<ul>
+<li><a href="#user-defined-extensions-example1">Example of declaring an extension</a></li>
+<li><a href="#user-defined-extensions-example2">Example of extension overloading</a></li>
+<li><a href="#user-defined-extensions-overriding">Overriding built-in extensions</a></li>
+<li><a href="#user-defined-extensions-scope">User-defined extension scope</a></li>
+</ul>
 <li><a href="#operators">Operators</a></li>
 <ul>
 <li><a href="#operators-int-and-int">Int And Int</a></li>
@@ -189,6 +196,7 @@ More information about arrays and `RefBox` can be found in their respective sect
 <h3 id="state-interpreter">Displaying the State of the Interpreter</h3>
 
 To display the contents of a variable, you can use the `print` or `printInline` instructions. The former adds a newline character, while the latter does not.
+Side note: `input` is used to get user input into variable.
 
 ```
 print "This will be followed by a new line"
@@ -574,6 +582,96 @@ t1 = create test1
 | Extension | Input       | Result | Description                   |
 | --------- | ----------- | ------ | ----------------------------- |
 | ToString  | 12:tostring | "12"   | Converts number to the string |
+
+<h3 id="user-defined-extensions">User-defined extensions</h3>
+
+User-defined extensions are custom extensions declared by the user. To declare your own extension, you need to create a const refbox and write a function that will act as the new extension. The refbox must be const to ensure that the function is not overwritten during the program's execution. The function itself must have at least one parameter, as the first parameter will be the value on which the extension is invoked. For example, if you call a custom extension on an integer like 42:myextension, the first parameter of the function will take the value 42.
+
+<h4 id="user-defined-extensions-example1">Example of declaring an extension</h4>
+
+```
+refbox const intExtensions
+  function cumulativeSum(num)
+    if num <= 0
+      throw "Number must be positive"
+    end
+    sum = 0
+    for i = num; i > 0; i = i - 1
+      sum = sum + i
+    end
+  return sum
+end
+```
+
+```
+> createExtension("int", "intExtensions", "cumulativeSum", 1)
+
+> print 5:cumulativeSum
+
+15
+```
+
+In this example:
+- The first argument `"int"` is the type to which the extension applies.
+- `"intExtensions"` is the name of the const refbox.
+- `"cumulativeSum"` is the name of the function to be used as the extension
+- The last argument 1 indicates the number of parameters the function takes.
+
+<h4 id="user-defined-extensions-example2">Example of extension overloading</h4>
+
+Since extensions are written in lowercase, declaring functions like `myFunction` and `MyFunction` with the same number of parameters is not allowed. The second declaration will overwrite the first. However, if the functions have different numbers of parameters, they can coexist, as shown in the example below:
+
+```
+refbox const stringExtensions
+  function subString(str, startIndex)
+    if startIndex < 0 || startIndex >= str:length
+      throw "Index out of range"
+    end
+    subArray = str:reverse:toarray - startIndex
+    return subArray:tostring:reverse
+  function subString(str, startIndex, count)
+    if startIndex < 0 || startIndex >= str:length
+      throw "Index out of range"
+    end
+    strArray = str:toarray
+    result = []
+    maxIndex = strArray:length
+    if startIndex + count < maxIndex
+      maxIndex = startIndex + count
+    end
+    for i = 0; i < maxIndex; i = i + 1
+      if i >= startIndex
+        result = result + strArray[i]
+      end
+    end
+    return result:tostring
+end
+```
+
+```
+> createExtension("string", "stringExtensions", "subString", 2)
+
+> createExtension("string", "stringExtensions", "subString", 3)
+
+> print "NGS_code":substring(4)
+
+code
+> print "NGS_code":substring(4, 2)
+
+co
+```
+
+In this case, the two versions of `subString` will not conflict because they accept different numbers of parameters.
+
+<h4 id="user-defined-extensions-overriding">Overriding built-in extensions</h4>
+
+User-defined extensions take precedence over existing language extensions, so you can effectively "override" a built-in extension by creating your own with the same name. The only exception to this rule is the `type` extension, which operates on all types and does not accept external arguments. The `type` extension cannot be overridden.
+
+<h4 id="user-defined-extensions-scope">User-defined extension scope</h4>
+
+An important point to note is that functions used to create extensions cannot reference other functions or fields within the refbox. During code execution, the function will run in the current scope, so the functions and fields from the refbox will no longer be accessible. However, the function will have normal access to variables in the current scope. This means that if the function references a variable `x` and a variable with that name exists in the current scope, it will be used.
+
+This behavior highlights the importance of being mindful of the scope when defining extensions, ensuring that the function relies only on variables available in the scope where it is invoked.
 
 <h3 id="operators">Operators</h3>
 

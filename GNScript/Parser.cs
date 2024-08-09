@@ -1,4 +1,7 @@
-﻿namespace GNScript;
+﻿using GNScript.Helpers;
+using System.IO;
+
+namespace GNScript;
 public class Parser
 {
     private readonly List<Token> _tokens;
@@ -318,12 +321,27 @@ public class Parser
 
     private AstNode ParseExpression()
     {
-        return ParseComparison();
+        return ParseLogicalOperator();
+    }
+
+    private AstNode ParseLogicalOperator()
+    {
+        var left = ParseComparison();
+
+        while (_position < _tokens.Count && (_tokens[_position].Type == TokenType.AndOperator || _tokens[_position].Type == TokenType.OrOperator))
+        {
+            var operatorToken = _tokens[_position];
+            _position++;
+            var right = ParseComparison();
+            left = new BinaryOperationNode(left, operatorToken, right);
+        }
+
+        return left;
     }
 
     private AstNode ParseComparison()
     {
-        var comparsionOperators = new[] { TokenType.GreaterThan, TokenType.LessThan, TokenType.Equal, TokenType.NotEqual, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual, TokenType.AndOperator, TokenType.OrOperator };
+        var comparsionOperators = new[] { TokenType.GreaterThan, TokenType.LessThan, TokenType.Equal, TokenType.NotEqual, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual };
         var left = ParseTerm();
 
         while (_position < _tokens.Count && comparsionOperators.Contains(_tokens[_position].Type))
@@ -446,6 +464,11 @@ public class Parser
                     throw new Exception("Missing closing parenthesis");
                 }
                 _position++;
+
+                if (_tokens[_position].Type == TokenType.Colon) // there can be extension after function call
+                {
+                    return ParseExtensionAccess(expression);
+                }
 
                 AstNode result = expression;
                 while (_tokens[_position].Type == TokenType.Dot) // we can call a function for anonymous refbox instance
@@ -594,6 +617,38 @@ public class Parser
                     {
                         return ParseExtensionAccess(node);
                     }
+
+                    return node;
+                }
+            case TokenType.UserDefinedExtension:
+                {
+                    _position++; // createExtension
+                    if (_tokens[_position].Type != TokenType.LeftParen)
+                    {
+                        throw new Exception("Expected (");
+                    }
+                    _position++; // (
+
+                    var parameters = new List<AstNode>();
+                    while (_tokens[_position].Type != TokenType.RightParen)
+                    {
+                        parameters.Add(ParseExpression());
+
+                        if (_tokens[_position].Type == TokenType.Comma)
+                            _position++; // comma
+                    }
+
+                    ExceptionsHelper.FailIfFalse(parameters.Count == 4, "Expected 4 parameters");
+
+                    // Ensure we are at a right parenthesis after parsing arguments
+                    if (_tokens[_position].Type != TokenType.RightParen)
+                    {
+                        throw new Exception("Missing closing parenthesis after function call arguments");
+                    }
+
+                    _position++; // )
+
+                    var node = new UserDefinedExtensionNode(parameters[0], parameters[1], parameters[2], parameters[3]);
 
                     return node;
                 }
