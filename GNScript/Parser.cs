@@ -465,6 +465,11 @@ public class Parser
                 }
                 _position++;
 
+                if (_tokens[_position].Type == TokenType.Colon) // there can be extension after function call
+                {
+                    return ParseExtensionAccess(expression);
+                }
+
                 AstNode result = expression;
                 while (_tokens[_position].Type == TokenType.Dot) // we can call a function for anonymous refbox instance
                 {
